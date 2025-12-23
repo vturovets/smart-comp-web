@@ -1,0 +1,1 @@
+smart-comp @ git+https://github.com/vturovets/smart-comp.git@v0.2.1
