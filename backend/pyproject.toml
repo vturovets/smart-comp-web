@@ -32,7 +32,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning",
+]
 
 [tool.ruff]
 src = ["app"]
