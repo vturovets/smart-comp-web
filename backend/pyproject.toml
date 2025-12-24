@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "smart-comp-backend"
+version = "0.1.0"
+description = "Smart Comp web backend scaffolding with FastAPI and Celery"
+authors = [{ name = "Smart Comp" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.111.0,<0.112.0",
+    "uvicorn[standard]>=0.30.0,<0.31.0",
+    "pydantic-settings>=2.3.0,<3.0.0",
+    "celery>=5.3.6,<6.0.0",
+    "redis>=5.0.0,<6.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0,<9.0.0",
+    "pytest-asyncio>=0.23.0,<1.0.0",
+    "httpx>=0.27.0,<0.28.0",
+    "ruff>=0.6.4,<0.7.0",
+    "fakeredis>=2.23.0,<3.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["error"]
+
+[tool.ruff]
+src = ["app"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "UP", "ARG", "RUF", "C4"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

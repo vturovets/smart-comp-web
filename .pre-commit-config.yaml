@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.4
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend lint
+        language: system
+        entry: npm run lint --prefix frontend
+        types: [javascript, jsx, ts, tsx]
+        pass_filenames: false
+      - id: frontend-test
+        name: frontend tests
+        language: system
+        entry: npm run test --prefix frontend -- --runInBand
+        types: [javascript, jsx, ts, tsx]
+        pass_filenames: false
