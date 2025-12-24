@@ -30,7 +30,7 @@ class JobStatus(str, Enum):
 @dataclass
 class JobProgress:
     percent: float = 0.0
-    step: str | None = None
+    step: str | None = "queued"
     message: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
