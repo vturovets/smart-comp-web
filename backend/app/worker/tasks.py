@@ -17,13 +17,13 @@ def get_redis_client() -> Redis:
     return Redis.from_url(str(settings.redis_url), decode_responses=True)
 
 
-def enqueue_job(job_type: str, payload: dict[str, Any] | None = None) -> JobRecord:
+def enqueue_job(job_type: str, payload: dict[str, Any] | None = None, *, job_id: str | None = None) -> JobRecord:
     """Create a job record and submit to Celery."""
     settings = get_settings()
     redis_client = get_redis_client()
     repository = JobRepository(redis_client)
 
-    job_id = str(uuid.uuid4())
+    job_id = job_id or str(uuid.uuid4())
     record = JobRecord(job_id=job_id, job_type=job_type, status=JobStatus.QUEUED)
     repository.save(record)
 
