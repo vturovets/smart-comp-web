@@ -26,12 +26,13 @@ This document describes a high-level solution for the Smart-Comp Web Application
 
 ### 1.2 Explicit constraints
 
-The SRS explicitly called out the absence of an auth story. In practice a public API without any form of access control is rarely acceptable, and in many deployments the Smart‑Comp service will sit behind a company SSO or API gateway. To keep the base implementation simple while still enabling secure deployments, this design treats authentication as **optional but pluggable**:
+The SRS explicitly called out the absence of an auth story. In the initial release the web application **does not require authentication**; it is intended to run inside a trusted internal network so that analysts can submit jobs without providing credentials. Treating the API as unauthenticated by default also simplifies local testing and automation. However, a public API without any form of access control is rarely acceptable in production, and many deployments will eventually sit behind an organisation’s SSO or identity gateway. The design therefore makes authentication **optional and configurable**:
 
-- **Authentication/authorization (optional)** – The core API remains usable without credentials for trusted internal deployments. For production use it is recommended to enable  the following:
+- **Authentication/authorization (disabled by default)** – All endpoints are publicly accessible when `SMARTCOMP_AUTH_ENABLED` is `false` (the default). In this mode the backend assumes that network‐level controls (e.g. VPN, firewall rules) restrict access. In future releases administrators can enable authentication by setting `SMARTCOMP_AUTH_ENABLED=true`; when enabled the API will verify user identities and protect endpoints.
   
-  - **Session or OAuth2/JWT** – integrate with an identity provider (e.g. Azure AD, Auth0) by validating JWTs in the FastAPI dependency layer. Routes can be annotated with `Depends(get_current_user)` to enforce user scopes.  
-    These mechanisms are transparent to the frontend; it will attach tokens when available and gracefully handle `401 Unauthorized` responses.
+  - **Google OAuth2 integration (future work)** – The preferred authentication mechanism is Google OAuth2. When auth is enabled the backend uses Google’s official Python client libraries to validate [ID tokens](https://developers.google.com/identity/sign-in/web/sign-in) and derive user claims. Only users with valid Google accounts in the allowed domain are permitted. Required parameters such as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are provided via environment variables. Routes can be annotated with `Depends(get_current_user)` to enforce scopes. If no token is presented or validation fails, the API returns `401 Unauthorized`. These mechanisms are transparent to the frontend; it will attach OAuth tokens when available and gracefully handle `401` responses.
+  
+  - **Pluggable backends** – Although Google OAuth2 is the first planned integration, the architecture does not hard‑code any identity provider. A custom authentication dependency can be registered in FastAPI to support other providers (e.g., Azure AD, Auth0) by validating JWTs. Because auth is toggled via an environment variable, deployments can remain open or secure without recompilation.
 
 - **No OpenAI API usage** – results are computed deterministically; any interpretation is provided by the Smart‑Comp library’s local summarisation and is never sent to OpenAI.
 
@@ -1144,9 +1145,13 @@ Clients can fetch individual files by requesting `GET /api/jobs/{jobId}/artifact
   
   - `redis`
 
-- Shared volume for `/tmp/smartcomp` (or replace with object storage later).
+Additional runtime and storage considerations:
 
-- Cap worker concurrency based on CPU and dataset sizes.
+- **Storage path configuration** – All job inputs and artefacts are written to a per‑job folder under a configurable base path. By default this base path is `/tmp/smartcomp`, but administrators can override it via a `SMARTCOMP_STORAGE_PATH` environment variable to use a host‑mounted volume or an object store mount (e.g., an NFS share or S3‑backed bucket). When using filesystem storage, mount the same persistent volume to the path specified by `SMARTCOMP_STORAGE_PATH` so that both the API and worker containers can read and write job data. For cloud deployments an object storage bucket with appropriate credentials may replace the shared volume; this decouples storage from compute and enables horizontal scaling.
+
+- **Authentication toggling** – The runtime behaviour of the API with respect to authentication is controlled via `SMARTCOMP_AUTH_ENABLED`. When set to `false` (the default), no authentication is enforced. When set to `true`, the API validates Google OAuth tokens; see §1.2 for details.
+
+- **Worker concurrency** – Configure the number of Celery worker processes based on available CPU cores and expected dataset sizes. Excessive parallelism on large bootstrap or permutation jobs can exhaust memory. Administrators should tune `CELERY_WORKER_CONCURRENCY` in accordance with hardware resources and workload characteristics.
 
 ## 11. Dependencies and environment versions
 
@@ -1169,3 +1174,19 @@ Reproducible deployments require explicit version pins for all major components.
 | **MUI (Material UI)**  | `6.x`                                                | Used for tables and UI components.                                                                                                           |
 
 Create `requirements.txt` and `package.json` with these pins. Use Docker base images such as `python:3.11-slim` and `node:20-alpine` to ensure consistent environments. Continuous integration should run `pip install --no-cache-dir -r requirements.txt` and `npm ci` to honour the lock files.
+
+### Backend requirements file
+
+To support the web API and asynchronous worker, create a dedicated `backend/requirements.txt` alongside the Smart‑Comp source tree. This file should pin all Python dependencies required to serve the API and execute jobs. In addition to the core numerical stack (NumPy, pandas, SciPy, Matplotlib, diptest) provided by the Smart‑Comp library, it **must** include:
+
+- **FastAPI** and **Uvicorn/Gunicorn** – to build and run the REST API. Use the versions listed in the table above (e.g., `fastapi==0.127.0`, `uvicorn==0.27.0`).
+
+- **Pydantic 2.x** – for request/response models used by FastAPI.
+
+- **Celery** and **redis‑py** – to offload long‑running jobs and communicate via Redis. Pin to `celery==5.6.0` and `redis==5.0.0`.
+
+- **python‑dotenv** (or similar) – to load environment variables (e.g., `SMARTCOMP_STORAGE_PATH`, `SMARTCOMP_AUTH_ENABLED`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) from an `.env` file during development.
+
+- **google‑auth** and **google‑auth‑oauthlib** – when authentication is enabled, these libraries verify Google ID tokens. Include pins such as `google-auth==2.24.0` and `google-auth-oauthlib==1.1.0`. They may be marked as optional extras for deployments that enable Google OAuth.
+
+Separating `backend/requirements.txt` from the Smart‑Comp library’s own `requirements.txt` allows maintainers to update backend dependencies without impacting the CLI. CI pipelines should run `pip install --no-cache-dir -r backend/requirements.txt` for the API and worker builds to ensure all packages are present.
