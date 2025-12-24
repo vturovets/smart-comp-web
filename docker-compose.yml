@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - backend/.env.example
+    environment:
+      - APP_DEBUG=true
+    volumes:
+      - ./backend/app:/app/app:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - backend/.env.example
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO"]
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    env_file:
+      - frontend/.env.example
+    ports:
+      - "5173:4173"
+    depends_on:
+      - api
