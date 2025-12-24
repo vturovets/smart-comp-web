@@ -64,6 +64,19 @@ class Settings(BaseSettings):
         description="Maximum allowed upload size per file in megabytes",
     )
 
+    job_timeout_seconds: int = Field(
+        1800,
+        gt=0,
+        description="Wall-clock timeout enforced for long-running jobs.",
+    )
+    max_concurrent_jobs: int = Field(
+        2,
+        ge=1,
+        description=(
+            "Maximum number of worker tasks allowed to run concurrently across the cluster.",
+        ),
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
