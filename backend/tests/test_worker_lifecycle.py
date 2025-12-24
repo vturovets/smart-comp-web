@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-
-import fakeredis
 import pytest
 
 from app.core.config import get_settings
@@ -11,6 +9,47 @@ from app.core.storage import prepare_job_paths
 from app.worker import tasks as worker_tasks
 from app.worker.celery_app import celery_app
 from app.worker.runner import JobRunner
+
+
+class _MemoryRedis:
+    """Minimal Redis stub to avoid external test dependency."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, str] = {}
+
+    def set(self, key: str, value: str) -> None:
+        self._store[key] = str(value)
+
+    def get(self, key: str) -> str | None:
+        return self._store.get(key)
+
+    def delete(self, key: str) -> int:
+        return 1 if self._store.pop(key, None) is not None else 0
+
+    def eval(self, script: str, numkeys: int, *args):
+        # Only supports the simple increment/decrement scripts used by JobSemaphore.
+        if numkeys != 1:
+            raise ValueError("Expected a single key for semaphore scripts")
+        key = args[0]
+        if "incr" in script:
+            limit = int(args[1])
+            current = int(self._store.get(key, "0"))
+            if current >= limit:
+                return 0
+            current += 1
+            self._store[key] = str(current)
+            return current
+
+        current = int(self._store.get(key, "0"))
+        if current <= 0:
+            self._store.pop(key, None)
+            return 0
+        current -= 1
+        if current <= 0:
+            self._store.pop(key, None)
+            return current
+        self._store[key] = str(current)
+        return current
 
 
 def configure_settings(monkeypatch: pytest.MonkeyPatch, tmp_path, *, timeout_seconds: int = 1):
@@ -23,7 +62,7 @@ def configure_settings(monkeypatch: pytest.MonkeyPatch, tmp_path, *, timeout_sec
 
 def test_runner_cancels_and_cleans(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     settings = configure_settings(monkeypatch, tmp_path, timeout_seconds=5)
-    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    redis_client = _MemoryRedis()
     repository = JobRepository(redis_client)
     semaphore = JobSemaphore(redis_client)
     job_id = "cancelled-job"
@@ -46,7 +85,7 @@ def test_runner_cancels_and_cleans(monkeypatch: pytest.MonkeyPatch, tmp_path) ->
 
 def test_runner_times_out(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     settings = configure_settings(monkeypatch, tmp_path, timeout_seconds=1)
-    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    redis_client = _MemoryRedis()
     repository = JobRepository(redis_client)
     semaphore = JobSemaphore(redis_client)
     job_id = "timeout-job"
@@ -87,7 +126,7 @@ def test_runner_times_out(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
 
 def test_enqueue_run_and_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     settings = configure_settings(monkeypatch, tmp_path, timeout_seconds=5)
-    fake_redis = fakeredis.FakeRedis(decode_responses=True)
+    fake_redis = _MemoryRedis()
     monkeypatch.setattr(worker_tasks, "get_redis_client", lambda: fake_redis)
     celery_app.conf.task_always_eager = True
     celery_app.conf.task_eager_propagates = True
