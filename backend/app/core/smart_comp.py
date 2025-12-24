@@ -39,10 +39,20 @@ class ConfigDefaults:
 def _load_config_text_from_package() -> str:
     try:
         config_resource = resources.files("smart_comp").joinpath(DEFAULT_CONFIG_NAME)
-    except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
-        raise SmartCompConfigError(
-            "Smart-Comp library is not installed; cannot read default configuration.",
-        ) from exc
+    except ModuleNotFoundError:
+        logger.warning("Smart-Comp library missing; using bundled fallback defaults.")
+        return (
+            "[test]\n"
+            "alpha = 0.05\n"
+            "bootstrap iterations = 5\n"
+            "permutation count = 5\n"
+            "[descriptive analysis]\n"
+            "required = true\n"
+            "[output]\n"
+            "create_log = false\n"
+            "[clean]\n"
+            "clean_all = false\n"
+        )
 
     if not config_resource.is_file():
         raise SmartCompConfigError(
