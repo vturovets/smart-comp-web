@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
-
 from pydantic import AnyUrl, Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -44,38 +42,6 @@ class Settings(BaseSettings):
     @property
     def cors_allow_origin_regex(self) -> str:
         return "|".join(self.cors_origins)
-
-    storage_root: Path = Field(
-        Path("/tmp/smartcomp"),
-        description="Base directory for per-job working data",
-    )
-    job_ttl_hours: int = Field(
-        24,
-        ge=0,
-        description="Retention window in hours for completed job artifacts; 0 deletes immediately",
-    )
-    smart_comp_config_path: Path | None = Field(
-        None,
-        description="Optional override path to Smart-Comp config file (config.txt)",
-    )
-    max_upload_mb: int = Field(
-        100,
-        gt=0,
-        description="Maximum allowed upload size per file in megabytes",
-    )
-
-    job_timeout_seconds: int = Field(
-        1800,
-        gt=0,
-        description="Wall-clock timeout enforced for long-running jobs.",
-    )
-    max_concurrent_jobs: int = Field(
-        2,
-        ge=1,
-        description=(
-            "Maximum number of worker tasks allowed to run concurrently across the cluster.",
-        ),
-    )
 
 
 @lru_cache(maxsize=1)

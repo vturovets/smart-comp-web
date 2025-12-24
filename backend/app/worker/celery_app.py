@@ -14,9 +14,6 @@ celery_app = Celery(
 )
 celery_app.conf.task_default_queue = settings.task_queue
 celery_app.conf.task_routes = {"app.worker.tasks.*": {"queue": settings.task_queue}}
-celery_app.conf.task_always_eager = settings.environment == "test"
-celery_app.conf.task_eager_propagates = True
-celery_app.conf.task_time_limit = settings.job_timeout_seconds + 60
 
 
 @celery_app.on_after_configure.connect
