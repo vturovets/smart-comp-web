@@ -16,6 +16,7 @@ dependencies = [
     "celery>=5.3.6,<6.0.0",
     "redis>=5.0.0,<6.0.0",
     "python-dotenv>=1.0.1,<2.0.0",
+    "smart-comp>=0.1.0",
 ]
 
 [project.optional-dependencies]
