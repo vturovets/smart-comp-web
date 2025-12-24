@@ -28,15 +28,21 @@ This document describes a high-level solution for the Smart-Comp Web Application
 
 The SRS explicitly called out the absence of an auth story. In the initial release the web application **does not require authentication**; it is intended to run inside a trusted internal network so that analysts can submit jobs without providing credentials. Treating the API as unauthenticated by default also simplifies local testing and automation. However, a public API without any form of access control is rarely acceptable in production, and many deployments will eventually sit behind an organisation’s SSO or identity gateway. The design therefore makes authentication **optional and configurable**:
 
-- **Authentication/authorization (disabled by default)** – All endpoints are publicly accessible when `SMARTCOMP_AUTH_ENABLED` is `false` (the default). In this mode the backend assumes that network‐level controls (e.g. VPN, firewall rules) restrict access. In future releases administrators can enable authentication by setting `SMARTCOMP_AUTH_ENABLED=true`; when enabled the API will verify user identities and protect endpoints.
+- **Authentication/authorization (disabled by default)** – All endpoints are publicly accessible when `SMARTCOMP_AUTH_ENABLED` is `false` (the default). In this mode the backend assumes that network‑level controls (e.g. VPN, firewall rules) restrict access. When administrators set `SMARTCOMP_AUTH_ENABLED=true` the API **must** verify user identities and protect all non‑trivial endpoints. In order to be considered “done” the following acceptance criteria apply:
   
-  - **Google OAuth2 integration (future work)** – The preferred authentication mechanism is Google OAuth2. When auth is enabled the backend uses Google’s official Python client libraries to validate [ID tokens](https://developers.google.com/identity/sign-in/web/sign-in) and derive user claims. Only users with valid Google accounts in the allowed domain are permitted. Required parameters such as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are provided via environment variables. Routes can be annotated with `Depends(get_current_user)` to enforce scopes. If no token is presented or validation fails, the API returns `401 Unauthorized`. These mechanisms are transparent to the frontend; it will attach OAuth tokens when available and gracefully handle `401` responses.
+  1. When authentication is enabled, every request (except health/metrics endpoints) without a valid bearer token returns **401 Unauthorized** with a structured error payload and `WWW‑Authenticate: Bearer` header.
   
-  - **Pluggable backends** – Although Google OAuth2 is the first planned integration, the architecture does not hard‑code any identity provider. A custom authentication dependency can be registered in FastAPI to support other providers (e.g., Azure AD, Auth0) by validating JWTs. Because auth is toggled via an environment variable, deployments can remain open or secure without recompilation.
+  2. Tokens are validated against the configured identity provider (initially Google OAuth2). Only users whose email matches one of the allowed domains (`SMARTCOMP_ALLOWED_DOMAINS`, comma‑separated) are authorised; requests with a valid token but unauthorised domain return **403 Forbidden**.
+  
+  3. Successful requests populate a `userId` claim on the FastAPI request context which is used to correlate jobs with their submitter. Clients can see only their own job metadata when auth is enabled.
+  
+  4. The system refuses to start without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` when `SMARTCOMP_AUTH_ENABLED=true`.
 
 - **No OpenAI API usage** – results are computed deterministically; any interpretation is provided by the Smart‑Comp library’s local summarisation and is never sent to OpenAI.
 
 - **File retention** – Per‑job directories are kept for a configurable time‑to‑live (TTL). By default artefacts and intermediate files are removed **24 hours after job completion** via a background cleanup task. The TTL can be reduced or increased via an environment variable (`SMARTCOMP_JOB_TTL_HOURS`). Cancelled jobs remove their working directory immediately. See §4.3 for details.
+
+- **Resource limits and concurrency** – To guard against denial‑of‑service through oversized uploads or runaway computations, the backend enforces several hard limits. Upload size is bounded by `SMARTCOMP_MAX_UPLOAD_BYTES` (default **100 MiB** per file and **500 MiB** for KW ZIP bundles). Requests exceeding the limit are rejected with **413 Payload Too Large**. Each job also inherits a **wall‑clock timeout** defined by `SMARTCOMP_JOB_TIMEOUT_SECONDS` (default **1 800 seconds**). Workers terminate jobs that exceed this duration and mark them **FAILED** with an appropriate error code. The number of concurrently running jobs is capped by the Celery worker concurrency (`CELERY_WORKER_CONCURRENCY`) and a global semaphore `SMARTCOMP_MAX_CONCURRENT_JOBS`. When the queue depth exceeds this limit the API responds with **429 Too Many Requests** to signal back‑pressure. Finally, the base working directory is configurable via `SMARTCOMP_STORAGE_ROOT`; the default is `/tmp/smartcomp`, but administrators may mount a persistent volume (e.g., `/var/lib/smartcomp`) and update the environment variable. All per‑job paths are created beneath this root, preventing path traversal and clarifying that `/tmp` is merely a default rather than a hard‑coded choice. These controls satisfy the SRS requirement to sanitize file uploads and limit file sizes while supporting concurrency.
 
 ## 2. Architecture overview
 
@@ -197,9 +203,27 @@ By combining these layers, the service avoids unbounded storage growth while sti
 
 ### 4.4 Observability
 
-- Per-job structured logs (`tool.log` artifact when enabled)
-
-- Correlation via `X-Request-Id` header; include `requestId` in error payloads.
+- The system must expose enough telemetry to operate reliably in production. In addition to per‑job logs and correlation IDs, the backend instruments internal state and publishes metrics.
+  
+  - **Structured logs** – per‑job logs (`tool.log` when `createLog=true`) are written in a JSON‑lines format with timestamp, level, `requestId` and `jobId` fields. They record key milestones (start, cleaning, sampling, permutation loops, finish) and any warnings or errors. Because these logs are included as artifacts, analysts can download them for troubleshooting, and they can also be shipped to a log aggregator for long‑term retention.
+  
+  - **Correlation IDs** – every HTTP request attaches or generates an `X‑Request‑Id` header. This identifier is echoed in structured error payloads (`requestId`) and injected into Celery task context so that traces across the API and worker can be correlated. When troubleshooting a job, operators can search for the `requestId` in application logs and metrics.
+  
+  - **Metrics** – when `SMARTCOMP_METRICS_ENABLED=true` (enabled by default), the application registers Prometheus collectors to export:
+    
+    - **HTTP metrics:** request duration, request/response size and status code buckets by endpoint.
+    
+    - **Job state gauges:** number of jobs by status (queued, running, completed, failed, cancelled) and current Redis queue depth.
+    
+    - **Job timing histograms:** end‑to‑end wall‑clock durations for each job type and per‑phase timing (cleaning, sampling, permutations).
+    
+    - **Worker concurrency:** number of active Celery workers and task execution time per worker.
+    
+    - **Cleanup counters:** number and age distribution of directories deleted by the TTL sweeper and cancellation routine.
+    
+    - **Upload statistics:** total bytes uploaded and number of uploads rejected because they exceeded `SMARTCOMP_MAX_UPLOAD_BYTES`.
+  
+    Metrics are exposed at a `/metrics` endpoint in the OpenMetrics format. This endpoint does not require authentication so that infrastructure (Prometheus or a similar collector) can scrape it even when API auth is enabled. Operators can visualise these metrics in dashboards and configure alerts on thresholds such as high error rates, long‑running jobs or disk usage.
 
 ### 4.5 Asynchronous worker and cancellation semantics
 
@@ -947,7 +971,6 @@ components:
         plots:
           type: array
           items: { $ref: "#/components/schemas/PlotRef" }
-
 ```
 
 ### 9.1 API examples
