@@ -26,11 +26,16 @@ This document describes a high-level solution for the Smart-Comp Web Application
 
 ### 1.2 Explicit constraints
 
-- **No authentication/authorization** (per SRS open issue marked Negative).
+The SRS explicitly called out the absence of an auth story. In practice a public API without any form of access control is rarely acceptable, and in many deployments the Smart‑Comp service will sit behind a company SSO or API gateway. To keep the base implementation simple while still enabling secure deployments, this design treats authentication as **optional but pluggable**:
 
-- **No OpenAI API usage** (results are computed deterministically; any “interpretation” is local/rule-based at most).
+- **Authentication/authorization (optional)** – The core API remains usable without credentials for trusted internal deployments. For production use it is recommended to enable  the following:
+  
+  - **Session or OAuth2/JWT** – integrate with an identity provider (e.g. Azure AD, Auth0) by validating JWTs in the FastAPI dependency layer. Routes can be annotated with `Depends(get_current_user)` to enforce user scopes.  
+    These mechanisms are transparent to the frontend; it will attach tokens when available and gracefully handle `401 Unauthorized` responses.
 
-- File retention is temporary; cleaned outputs/logs/artifacts are produced per run and cleaned per policy.
+- **No OpenAI API usage** – results are computed deterministically; any interpretation is provided by the Smart‑Comp library’s local summarisation and is never sent to OpenAI.
+
+- **File retention** – Per‑job directories are kept for a configurable time‑to‑live (TTL). By default artefacts and intermediate files are removed **24 hours after job completion** via a background cleanup task. The TTL can be reduced or increased via an environment variable (`SMARTCOMP_JOB_TTL_HOURS`). Cancelled jobs remove their working directory immediately. See §4.3 for details.
 
 ## 2. Architecture overview
 
@@ -179,17 +184,45 @@ Per job:
 
 ### 4.3 Cleanup and retention
 
-- Default: follow Smart-Comp behavior (generate cleaned copies/logs if configured).
+The backend creates a per‑job working directory where inputs, cleaned copies, intermediate samples, logs and plots are stored. Without explicit cleanup these folders could accumulate on disk. The retention policy therefore has two layers:
 
-- Add a **TTL cleanup** (e.g., 24h) as a safety net to prevent orphaned job folders.
+- **Immediate cleanup on cancel/failure** – if a job enters a terminal state of **FAILED** or **CANCELLED**, the worker invokes a cleanup routine that removes the job’s working directory and any associated artefacts. This prevents partially processed data from lingering.
 
-- If “clean_all” behavior exists in Smart-Comp config, expose it as a backend config option.
+- **Time‑to‑live (TTL) for completed jobs** – completed jobs may be inspected by users for some time. A background task (Celery beat or a cron) scans `/tmp/smartcomp` and deletes directories whose `finishedAt` is older than a configurable TTL (default **24 hours**). The TTL is controlled by an environment variable `SMARTCOMP_JOB_TTL_HOURS`. Administrators can set this to `0` to disable retention entirely or to higher values (e.g., 168 hours for one week) when audits require longer persistence. The cleanup routine logs each deletion and exposes metrics for observability.
+
+- **Configurable cleaning behaviour** – Smart‑Comp’s INI configuration has a `[clean] clean_all` flag that removes cleaned and sampled CSVs immediately after the CLI run. The backend surfaces this as `cleanAll` in the ConfigOverrides model (§8). When `cleanAll = true`, only the final result JSON/TXT and plot artefacts remain; all intermediate data are purged as soon as the job completes.
+
+By combining these layers, the service avoids unbounded storage growth while still giving users reasonable time to download artefacts. Administrators should ensure the underlying filesystem or object store supports automatic expiration.
 
 ### 4.4 Observability
 
 - Per-job structured logs (`tool.log` artifact when enabled)
 
 - Correlation via `X-Request-Id` header; include `requestId` in error payloads.
+
+### 4.5 Asynchronous worker and cancellation semantics
+
+Smart‑Comp analyses can take tens of seconds or minutes depending on the dataset and permutation count. To keep HTTP requests responsive the backend offloads computation to a task queue (e.g., Celery with Redis broker). The worker pattern introduces additional state transitions and requires a robust cancellation story:
+
+**Task lifecycle**
+
+1. When the API receives `POST /api/jobs`, it writes a **Job** record to Redis with status **QUEUED**, persists the inputs on disk and enqueues a Celery task containing the job identifier and configuration.
+
+2. A worker picks up the task and transitions the job to **RUNNING**, updating `startedAt`. During execution the task periodically updates `progress.percent`, `progress.step` and `message` fields in Redis. For bootstrap jobs these steps might include *cleaning*, *sampling*, *bootstrap loops* and *result writing*. For Kruskal–Wallis permutation jobs the steps include *loading groups*, *computing omnibus statistic* and *permutation loop*.
+
+3. Upon completion, the worker writes `results.json`, assembles the artifact list, sets status **COMPLETED**, populates `finishedAt` and publishes a notification (optional). If an exception escapes, the worker records the error message/traceback under `error`, marks the job **FAILED** and triggers cleanup.
+
+**Cancellation**
+
+The API provides `POST /api/jobs/{jobId}/cancel` to request job cancellation. The semantics are:
+
+- For **QUEUED** jobs the backend removes the entry from the queue (Celery’s `revoke` with `terminate=False`) before a worker starts processing. The job is marked **CANCELLED** and the working directory is removed.
+
+- For **RUNNING** jobs the backend sets a cancellation flag on the job in Redis and calls `revoke(task_id, terminate=True, signal='SIGTERM')` on the Celery task. Termination will send a SIGTERM to the worker process; however Python code can intercept this gracefully. The Smart‑Comp worker periodically checks the cancellation flag between major computation loops (e.g., after each bootstrap iteration or permutation chunk). If detected, it raises a `JobCancelledError`, catches it at the top level, cleans up temporary files and marks the job **CANCELLED**. Clients polling the job status will observe `status: CANCELLED` with no results available.
+
+- If the job is already **COMPLETED**, **FAILED** or **CANCELLED**, the API returns `409 Conflict`.
+
+These semantics ensure cancellations are timely without abruptly killing Python threads in the middle of a NumPy routine. Long loops should be chunked (e.g., update progress every 1000 iterations) to provide responsive cancellation.
 
 ## 5. REST API (Option A)
 
@@ -439,8 +472,6 @@ Include:
   - render descriptive card/table + plots
   
   - no “significance” decision block
-
----
 
 ## 8. Data contracts
 
@@ -915,9 +946,193 @@ components:
         plots:
           type: array
           items: { $ref: "#/components/schemas/PlotRef" }
+
 ```
 
-## 10. Deployment blueprint (recommended)
+### 9.1 API examples
+
+While the OpenAPI schema describes the shape of requests and responses, concrete examples help implementers test against the backend. The following examples illustrate typical payloads for each endpoint.
+
+#### `GET /api/config/defaults`
+
+Request (no body):
+
+```http
+GET /api/config/defaults HTTP/1.1
+Host: smartcomp.example.com
+Accept: application/json
+```
+
+Response:
+
+```json
+{
+  "alpha": 0.05,
+  "threshold": null,
+  "bootstrapIterations": 10000,
+  "permutationCount": 10000,
+  "sampleSize": null,
+  "descriptiveEnabled": true,
+  "createLog": false,
+  "plots": {
+    "histogram": true,
+    "boxplot": true,
+    "kde": true
+  }
+}
+```
+
+#### `POST /api/jobs` (bootstrap single, Option A)
+
+Multipart FormData fields:
+
+```ini
+jobType = BOOTSTRAP_SINGLE
+config = {"alpha":0.05,"bootstrapIterations":5000,"sampleSize":1000}
+file1  = (binary) contents of dataset.csv
+```
+
+A cURL example:
+
+```bash
+curl -X POST https://smartcomp.example.com/api/jobs \
+  -F jobType=BOOTSTRAP_SINGLE \
+  -F config='{"alpha":0.05,"bootstrapIterations":5000,"sampleSize":1000}' \
+  -F file1=@/path/to/dataset.csv
+```
+
+Example response:
+
+```json
+{
+  "jobId": "3b0d4f7e-7f9f-4b68-a1b8-6d6b6a3c2a1a"
+}
+```
+
+#### `GET /api/jobs/{jobId}`
+
+Request:
+
+```http
+GET /api/jobs/3b0d4f7e-7f9f-4b68-a1b8-6d6b6a3c2a1a HTTP/1.1
+Host: smartcomp.example.com
+Accept: application/json
+```
+
+Possible running response:
+
+```json
+{
+  "jobId": "3b0d4f7e-7f9f-4b68-a1b8-6d6b6a3c2a1a",
+  "jobType": "BOOTSTRAP_SINGLE",
+  "status": "RUNNING",
+  "createdAt": "2025-12-23T10:00:00Z",
+  "startedAt": "2025-12-23T10:00:01Z",
+  "progress": {
+    "step": "Bootstrap iterations",
+    "percent": 42.1,
+    "message": "4200/10000"
+  }
+}
+```
+
+Completed response (single bootstrap):
+
+```json
+{
+  "jobId": "3b0d4f7e-7f9f-4b68-a1b8-6d6b6a3c2a1a",
+  "jobType": "BOOTSTRAP_SINGLE",
+  "status": "COMPLETED",
+  "createdAt": "2025-12-23T10:00:00Z",
+  "startedAt": "2025-12-23T10:00:01Z",
+  "finishedAt": "2025-12-23T10:02:30Z"
+}
+```
+
+#### `GET /api/jobs/{jobId}/results`
+
+For a completed single bootstrap job the results JSON may look like this:
+
+```json
+{
+  "jobId": "…",
+  "jobType": "BOOTSTRAP_SINGLE",
+  "decision": {
+    "significant": false,
+    "alpha": 0.05,
+    "pValue": 0.27
+  },
+  "metrics": {
+    "p95": 124.3,
+    "ciLower": 120.1,
+    "ciUpper": 129.8
+  },
+  "descriptive": {
+    "mean": 103.7,
+    "median": 102.1,
+    "std": 15.2,
+    "sampleSize": 1000
+  },
+  "plots": [
+    {"kind": "histogram", "artifactName": "hist_dataset.png"},
+    {"kind": "boxplot",    "artifactName": "box_dataset.png"}
+  ]
+}
+```
+
+Similarly, a KW permutation result includes the omnibus statistic and per‑group statistics:
+
+```json
+{
+  "jobId": "…",
+  "jobType": "KW_PERMUTATION",
+  "decision": {
+    "alpha": 0.05,
+    "pValue": 0.003
+  },
+  "omnibus": {
+    "hStatistic": 12.34,
+    "permutations": 10000
+  },
+  "groups": [
+    {
+      "groupName": "Control",
+      "files": [
+        {"fileName": "control.csv", "n": 950, "p95": 115.0, "median": 100.1}
+      ]
+    },
+    {
+      "groupName": "Variant",
+      "files": [
+        {"fileName": "variant.csv", "n": 970, "p95": 130.2, "median": 110.0}
+      ]
+    }
+  ],
+  "plots": [
+    {"kind": "histogram", "artifactName": "hist_omnibus.png"}
+  ]
+}
+```
+
+#### `GET /api/jobs/{jobId}/artifacts`
+
+Response example:
+
+```json
+{
+  "jobId": "…",
+  "artifacts": [
+    {"name": "results.json",      "contentType": "application/json",  "sizeBytes": 2345, "createdAt": "2025-12-23T10:02:30Z"},
+    {"name": "results.txt",       "contentType": "text/plain",        "sizeBytes": 1123, "createdAt": "2025-12-23T10:02:30Z"},
+    {"name": "hist_dataset.png",  "contentType": "image/png",         "sizeBytes": 54321, "createdAt": "2025-12-23T10:02:31Z"},
+    {"name": "tool.log",          "contentType": "text/plain",        "sizeBytes": 987,   "createdAt": "2025-12-23T10:02:31Z"}
+  ]
+}
+```
+
+Clients can fetch individual files by requesting `GET /api/jobs/{jobId}/artifacts/{artifactName}` and streaming the binary response.
+
+## 10. Deployment blueprint
 
 - Containers:
   
@@ -933,12 +1148,24 @@ components:
 
 - Cap worker concurrency based on CPU and dataset sizes.
 
----
+## 11. Dependencies and environment versions
 
-## 11. Open issues filled by best guess (current best default)
+Reproducible deployments require explicit version pins for all major components. The following versions are recommended as of **December 2025**; newer patch versions may be used when they are backwards compatible.
 
-- **AuthN/AuthZ:** none.
+| Component              | Recommended version                                  | Notes                                                                                                                                        |
+| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Python**             | `3.11`                                               | FastAPI and Celery support Python 3.11; align worker and API images.                                                                         |
+| **Smart‑Comp library** | git commit or PyPI release used for this integration | Pin the Smart‑Comp dependency via `pip install smart-comp @ git+https://github.com/vturovets/smart-comp@<commit>` to avoid breaking changes. |
+| **FastAPI**            | `0.127.0`                                            | Latest stable release (Dec 2025). Requires Pydantic 2.x.                                                                                     |
+| **Uvicorn**            | `0.27.0`                                             | ASGI server; pair with FastAPI.                                                                                                              |
+| **Pydantic**           | `2.5.2`                                              | Used by FastAPI for data validation.                                                                                                         |
+| **Celery**             | `5.6.0`                                              | Stable distributed task queue (Nov 2025).                                                                                                    |
+| **Redis** (server)     | `7.2`                                                | Acts as Celery broker and result store. Use `redis-py` `5.0.0`.                                                                              |
+| **Node.js**            | `20.x LTS`                                           | Required to build the React frontend via Vite.                                                                                               |
+| **npm**/`pnpm`         | `10.x`                                               | Use a lockfile to pin package versions.                                                                                                      |
+| **React**              | `19.2.1`                                             | Latest minor release of React 19 (Dec 2025).                                                                                                 |
+| **TypeScript**         | `5.3`                                                | Matches React 19 typing support.                                                                                                             |
+| **Vite**               | `5.0`                                                | Build tool for the SPA.                                                                                                                      |
+| **MUI (Material UI)**  | `6.x`                                                | Used for tables and UI components.                                                                                                           |
 
-- **Retention:** artifacts kept until TTL cleanup (e.g., 24h) and/or Smart-Comp cleanup policy.
-
-- **KW ZIP layout:** both supported; mixed layouts rejected (explicit, deterministic rule).
+Create `requirements.txt` and `package.json` with these pins. Use Docker base images such as `python:3.11-slim` and `node:20-alpine` to ensure consistent environments. Continuous integration should run `pip install --no-cache-dir -r requirements.txt` and `npm ci` to honour the lock files.
