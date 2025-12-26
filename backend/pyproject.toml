@@ -10,7 +10,7 @@ authors = [{ name = "Smart Comp" }]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastapi>=0.111.0,<0.112.0",
+    "ffastapi>=0.120.0,<1.0.0",
     "uvicorn[standard]>=0.30.0,<0.31.0",
     "pydantic-settings>=2.3.0,<3.0.0",
     "celery>=5.3.6,<6.0.0",
@@ -37,7 +37,9 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = [
     "error",
+    "ignore:asyncio.iscoroutinefunction.*is deprecated:DeprecationWarning",
     "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning",
+
 ]
 
 [tool.ruff]
