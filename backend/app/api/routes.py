@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
 from app.api.errors import ApiError
-from app.api.dependencies import get_job_service, get_settings_dep
+from app.api.dependencies import get_current_user, get_job_service, get_settings_dep
 from app.api.schemas import (
     ArtifactList,
     ArtifactModel,
@@ -55,6 +55,7 @@ async def create_job(
     file2: UploadFile | None = File(default=None),
     kwBundle: UploadFile | None = File(default=None),
     job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
 ) -> JobCreateResponse:
     try:
         parsed_config = ConfigOverrides.model_validate_json(config)
@@ -69,6 +70,7 @@ async def create_job(
         file1=await file1.read() if file1 else None,
         file2=await file2.read() if file2 else None,
         kw_bundle=await kwBundle.read() if kwBundle else None,
+        user_id=current_user.user_id if current_user else None,
     )
     bind_job_context(record.job_id)
     record_job_started(jobType.value)
@@ -81,9 +83,13 @@ async def create_job(
     response_model=JobModel,
     responses={404: {"model": ErrorResponse}},
 )
-def get_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> JobModel:
+def get_job(
+    job_id: str,
+    job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
+) -> JobModel:
     bind_job_context(job_id)
-    record = job_service.get_job(job_id)
+    record = job_service.get_job(job_id, user_id=current_user.user_id if current_user else None)
     if not record:
         raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
     return JobModel(**record.to_dict())
@@ -95,9 +101,13 @@ def get_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> 
     response_model=JobModel,
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def cancel_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> JobModel:
+def cancel_job(
+    job_id: str,
+    job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
+) -> JobModel:
     bind_job_context(job_id)
-    record = job_service.cancel_job(job_id)
+    record = job_service.cancel_job(job_id, user_id=current_user.user_id if current_user else None)
     return JobModel(**record.to_dict())
 
 
@@ -107,9 +117,13 @@ def cancel_job(job_id: str, job_service: JobService = Depends(get_job_service)) 
     response_model=ResultsUnion,
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def get_results(job_id: str, job_service: JobService = Depends(get_job_service)) -> ResultsUnion:
+def get_results(
+    job_id: str,
+    job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
+) -> ResultsUnion:
     bind_job_context(job_id)
-    results = job_service.get_results(job_id)
+    results = job_service.get_results(job_id, user_id=current_user.user_id if current_user else None)
     return results
 
 
@@ -119,9 +133,13 @@ def get_results(job_id: str, job_service: JobService = Depends(get_job_service))
     response_model=ArtifactList,
     responses={404: {"model": ErrorResponse}},
 )
-def list_artifacts(job_id: str, job_service: JobService = Depends(get_job_service)) -> ArtifactList:
+def list_artifacts(
+    job_id: str,
+    job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
+) -> ArtifactList:
     bind_job_context(job_id)
-    artifacts = job_service.list_artifacts(job_id)
+    artifacts = job_service.list_artifacts(job_id, user_id=current_user.user_id if current_user else None)
     serialized = [
         ArtifactModel(
             name=artifact["name"],
@@ -143,7 +161,8 @@ def get_artifact(
     job_id: str,
     artifact_name: str,
     job_service: JobService = Depends(get_job_service),
+    current_user=Depends(get_current_user),
 ) -> FileResponse:
     bind_job_context(job_id)
-    path = job_service.get_artifact_path(job_id, artifact_name)
+    path = job_service.get_artifact_path(job_id, artifact_name, user_id=current_user.user_id if current_user else None)
     return FileResponse(path)

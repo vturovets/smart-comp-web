@@ -8,3 +8,5 @@ python-multipart>=0.0.9,<0.1.0
 prometheus-client>=0.20.0,<1.0.0
 smart-comp @ git+https://github.com/vturovets/smart-comp@223aa61bd2613cdf62825acbb226d652bc02f7cd
 fakeredis>=2.23.2,<3.0.0
+google-auth>=2.29.0,<3.0.0
+requests>=2.31.0,<3.0.0

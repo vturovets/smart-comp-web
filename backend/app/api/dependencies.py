@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from redis import Redis
 
+from app.core.auth import AuthenticatedUser
 from app.core.config import Settings, get_settings
 from app.core.job_service import JobService
 from app.core.jobs import JobRepository
@@ -26,3 +27,12 @@ def get_job_service(
     settings: Settings = Depends(get_settings_dep),
 ) -> JobService:
     return JobService(repository, settings=settings)
+
+
+def get_current_user(request: Request, settings: Settings = Depends(get_settings_dep)) -> AuthenticatedUser | None:
+    if not settings.auth_enabled:
+        return None
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise RuntimeError("Auth middleware did not populate user.")
+    return user

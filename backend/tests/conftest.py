@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 import app.core.config as core_config
 from app.core.jobs import JobRepository
+from app.core.job_service import JobService
 
 
 def pytest_addoption(parser) -> None:
@@ -122,6 +123,10 @@ def build_test_client(
     app_instance = importlib.reload(main).create_app()
     app_instance.dependency_overrides[deps.get_job_repository] = lambda: JobRepository(fake_redis)
     app_instance.dependency_overrides[deps.get_redis_client_dep] = lambda: fake_redis
+    app_instance.dependency_overrides[deps.get_job_service] = lambda: JobService(
+        JobRepository(fake_redis),
+        settings=core_config.get_settings(),
+    )
     return TestClient(app_instance)
 
 

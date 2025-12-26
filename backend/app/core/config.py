@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     project_name: str = Field("Smart Comp API", description="OpenAPI title")
     project_version: str = Field("0.1.0", description="Semantic version")
 
+    auth_enabled: bool = Field(False, description="Enable Google OAuth2 bearer authentication")
+    allowed_domains: list[str] | str = Field(
+        default_factory=list,
+        description="Comma-separated list of email domains allowed to access the API",
+    )
+    google_client_id: str | None = Field(None, description="Google OAuth2 client ID")
+    google_client_secret: str | None = Field(None, description="Google OAuth2 client secret")
+
     redis_url: AnyUrl | str = Field(
         "redis://redis:6379/0",
         description="Redis connection string for Celery broker and result backend",
@@ -44,6 +52,13 @@ class Settings(BaseSettings):
     @property
     def cors_allow_origin_regex(self) -> str:
         return "|".join(self.cors_origins)
+
+    @field_validator("allowed_domains", mode="before")
+    @classmethod
+    def parse_allowed_domains(cls, value: str | list[str]) -> list[str]:  # noqa: N805
+        if isinstance(value, str):
+            return [domain.strip().lower() for domain in value.split(",") if domain.strip()]
+        return [domain.lower() for domain in value]
 
     storage_root: Path = Field(
         Path("/tmp/smartcomp"),

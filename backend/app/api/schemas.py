@@ -36,6 +36,7 @@ class JobModel(BaseModel):
     taskId: str | None = None
     progress: ProgressModel
     error: str | None = None
+    userId: str | None = None
 
 
 class JobCreateResponse(BaseModel):

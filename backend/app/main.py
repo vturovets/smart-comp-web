@@ -12,6 +12,7 @@ from prometheus_client import generate_latest
 from prometheus_client import REGISTRY as prometheus_registry
 from prometheus_client import CONTENT_TYPE_LATEST
 
+from app.core.auth import AuthenticatedUser, authenticate_request
 from .api.errors import (
     ApiError,
     _build_error_response,
@@ -57,11 +58,43 @@ class _RequestContextMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class _AuthMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: FastAPI, settings) -> None:  # type: ignore[override]
+        super().__init__(app)
+        self.settings = settings
+
+    async def dispatch(self, request: Request, call_next):
+        if not self.settings.auth_enabled:
+            return await call_next(request)
+
+        if request.url.path in {"/", "/metrics", f"{self.settings.api_prefix}/health"}:
+            return await call_next(request)
+
+        user, error_response = await authenticate_request(request, self.settings)
+        if error_response:
+            return error_response
+
+        assert isinstance(user, AuthenticatedUser)
+        request.state.user = user
+        return await call_next(request)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
+    if settings.auth_enabled:
+        missing = [name for name in ("google_client_id", "google_client_secret") if not getattr(settings, name)]
+        if missing:
+            raise RuntimeError(
+                "Authentication enabled but missing required settings: "
+                + ", ".join(missing),
+            )
+        if not settings.allowed_domains:
+            raise RuntimeError("Authentication enabled but no allowed_domains configured.")
+
     configure_logging(logging.DEBUG if settings.debug else logging.INFO)
     app = FastAPI(title=settings.project_name, version=settings.project_version)
     app.add_middleware(_RequestContextMiddleware)
+    app.add_middleware(_AuthMiddleware, settings=settings)
 
     app.add_middleware(
         CORSMiddleware,
