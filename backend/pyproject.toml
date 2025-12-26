@@ -35,7 +35,6 @@ asyncio_mode = "auto"
 filterwarnings = [
     "error",
     "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning",
-    "ignore:'asyncio.iscoroutinefunction' is deprecated.*:DeprecationWarning",
 ]
 
 [tool.ruff]
