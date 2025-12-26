@@ -1,0 +1,222 @@
+{
+  "consumer": {
+    "name": "smart-comp-web"
+  },
+  "interactions": [
+    {
+      "description": "a request for config defaults",
+      "providerStates": [
+        {
+          "name": "config defaults available"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/config/defaults"
+      },
+      "response": {
+        "body": {
+          "alpha": 0.05,
+          "cleanAll": false,
+          "createLog": false,
+          "descriptiveEnabled": true,
+          "plots": {}
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "create job request",
+      "providerStates": [
+        {
+          "name": "ready to accept job creation"
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "path": "/api/jobs"
+      },
+      "response": {
+        "body": {
+          "jobId": "pact-job-1"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "job status request",
+      "providerStates": [
+        {
+          "name": "job is complete"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/jobs/pact-job-1"
+      },
+      "response": {
+        "body": {
+          "createdAt": null,
+          "jobId": "pact-job-1",
+          "jobType": "BOOTSTRAP_SINGLE",
+          "progress": {
+            "percent": 100
+          },
+          "status": "COMPLETED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "{\"generate\":\"2023-01-01T00:00:00Z\",\"matcher\":\".+\"}"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "job results request",
+      "providerStates": [
+        {
+          "name": "results ready"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/jobs/pact-job-1/results"
+      },
+      "response": {
+        "body": {
+          "decision": {
+            "alpha": 0.05,
+            "pValue": 0.03,
+            "significant": true
+          },
+          "descriptive": {
+            "mean": 1.5
+          },
+          "jobId": "pact-job-1",
+          "jobType": "BOOTSTRAP_SINGLE",
+          "metrics": {
+            "delta": 1.2
+          },
+          "plots": [
+            {
+              "artifactName": "plot.json",
+              "kind": "histogram"
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "artifact list request",
+      "providerStates": [
+        {
+          "name": "artifacts ready"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/jobs/pact-job-1/artifacts"
+      },
+      "response": {
+        "body": {
+          "artifacts": [
+            {
+              "contentType": "application/json",
+              "createdAt": null,
+              "name": "plot.json",
+              "sizeBytes": 1024
+            }
+          ],
+          "jobId": "pact-job-1"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.artifacts[0].createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "{\"generate\":\"2023-01-01T00:00:00Z\",\"matcher\":\".+\"}"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "artifact download",
+      "providerStates": [
+        {
+          "name": "plot artifact available"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/jobs/pact-job-1/artifacts/plot.json"
+      },
+      "response": {
+        "body": {
+          "data": [
+            {
+              "type": "bar",
+              "x": [
+                1,
+                2
+              ],
+              "y": [
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "16.0.4"
+    },
+    "pactRust": {
+      "ffi": "0.4.28",
+      "models": "1.3.5"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "smart-comp-api"
+  }
+}

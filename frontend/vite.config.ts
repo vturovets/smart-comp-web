@@ -6,7 +6,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: "./vitest.setup.ts"
+    setupFiles: "./vitest.setup.ts",
+    environmentMatchGlobs: [["tests/pact/**", "node"]],
+    coverage: {
+      reporter: ["text", "html"]
+    }
   },
   server: {
     port: 5173,
