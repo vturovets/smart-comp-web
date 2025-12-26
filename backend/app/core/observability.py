@@ -8,31 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Counter, Histogram, generate_latest
-except ImportError:  # pragma: no cover - fallback for optional dependency
-    CONTENT_TYPE_LATEST = "text/plain; version=0.0.4"
-
-    class _NoopMetric:
-        def labels(self, **_: Any) -> "_NoopMetric":
-            return self
-
-        def inc(self, *_: Any, **__: Any) -> None:
-            return None
-
-        def observe(self, *_: Any, **__: Any) -> None:
-            return None
-
-    def generate_latest(_: object | None = None) -> bytes:
-        return b""
-
-    class _NoopRegistry:  # pragma: no cover - minimal placeholder
-        pass
-
-    REGISTRY = _NoopRegistry()
-    Counter = Histogram = _NoopMetric  # type: ignore[assignment]
-
-PROMETHEUS_AVAILABLE = not isinstance(REGISTRY, type)
+from prometheus_client import Counter, Histogram
 
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 trace_id_ctx: ContextVar[str | None] = ContextVar("trace_id", default=None)
@@ -151,7 +127,3 @@ def job_logging(job_id: str, log_path: Path):
     finally:
         logger.removeHandler(handler)
         handler.close()
-
-
-def render_metrics() -> bytes:
-    return generate_latest(REGISTRY)
