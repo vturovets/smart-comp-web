@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from app.core.observability import PROMETHEUS_AVAILABLE
 from tests.conftest import StubRedis, build_test_client
 
 
@@ -28,6 +29,8 @@ def test_error_response_contains_request_id(api_client) -> None:
 
 
 def test_metrics_endpoint_exposes_counters(api_client) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        pytest.skip("Prometheus client not installed")
     api_client.get("/")
     metrics_response = api_client.get("/metrics")
 

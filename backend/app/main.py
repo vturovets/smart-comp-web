@@ -8,9 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
-from prometheus_client import generate_latest
-from prometheus_client import REGISTRY as prometheus_registry
-from prometheus_client import CONTENT_TYPE_LATEST
 
 from .api.errors import (
     ApiError,
@@ -24,6 +21,9 @@ from .core.config import get_settings
 from .core.observability import (
     bind_request_context,
     configure_logging,
+    render_metrics,
+    CONTENT_TYPE_LATEST,
+    PROMETHEUS_AVAILABLE,
     record_request_metrics,
 )
 
@@ -83,7 +83,12 @@ def create_app() -> FastAPI:
 
     @app.get("/metrics", include_in_schema=False)
     def metrics():
-        data = generate_latest(prometheus_registry)
+        if not PROMETHEUS_AVAILABLE:
+            return PlainTextResponse(
+                "Prometheus metrics unavailable; install prometheus-client to enable /metrics.",
+                status_code=503,
+            )
+        data = render_metrics()
         return PlainTextResponse(data, media_type=CONTENT_TYPE_LATEST)
 
     return app
