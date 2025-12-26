@@ -19,6 +19,7 @@ from app.api.schemas import (
     ResultsUnion,
 )
 from app.core.contracts import ConfigOverrides, JobType
+from app.core.observability import bind_job_context, record_job_started
 from app.core.job_service import JobService
 from app.core.smart_comp import defaults_to_overrides, load_config_defaults
 
@@ -69,6 +70,8 @@ async def create_job(
         file2=await file2.read() if file2 else None,
         kw_bundle=await kwBundle.read() if kwBundle else None,
     )
+    bind_job_context(record.job_id)
+    record_job_started(jobType.value)
     return JobCreateResponse(jobId=record.job_id)
 
 
@@ -79,6 +82,7 @@ async def create_job(
     responses={404: {"model": ErrorResponse}},
 )
 def get_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> JobModel:
+    bind_job_context(job_id)
     record = job_service.get_job(job_id)
     if not record:
         raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
@@ -92,6 +96,7 @@ def get_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> 
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def cancel_job(job_id: str, job_service: JobService = Depends(get_job_service)) -> JobModel:
+    bind_job_context(job_id)
     record = job_service.cancel_job(job_id)
     return JobModel(**record.to_dict())
 
@@ -103,6 +108,7 @@ def cancel_job(job_id: str, job_service: JobService = Depends(get_job_service)) 
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def get_results(job_id: str, job_service: JobService = Depends(get_job_service)) -> ResultsUnion:
+    bind_job_context(job_id)
     results = job_service.get_results(job_id)
     return results
 
@@ -114,6 +120,7 @@ def get_results(job_id: str, job_service: JobService = Depends(get_job_service))
     responses={404: {"model": ErrorResponse}},
 )
 def list_artifacts(job_id: str, job_service: JobService = Depends(get_job_service)) -> ArtifactList:
+    bind_job_context(job_id)
     artifacts = job_service.list_artifacts(job_id)
     serialized = [
         ArtifactModel(
@@ -137,5 +144,6 @@ def get_artifact(
     artifact_name: str,
     job_service: JobService = Depends(get_job_service),
 ) -> FileResponse:
+    bind_job_context(job_id)
     path = job_service.get_artifact_path(job_id, artifact_name)
     return FileResponse(path)
