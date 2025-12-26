@@ -58,6 +58,7 @@ class JobRecord:
     task_id: str | None = None
     progress: JobProgress = field(default_factory=JobProgress)
     error: str | None = None
+    user_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -70,6 +71,7 @@ class JobRecord:
             "taskId": self.task_id,
             "progress": self.progress.to_dict(),
             "error": self.error,
+            "userId": self.user_id,
         }
 
     def to_json(self) -> str:
@@ -87,6 +89,7 @@ class JobRecord:
             task_id=data.get("taskId"),
             progress=JobProgress.from_dict(data.get("progress")),
             error=data.get("error"),
+            user_id=data.get("userId"),
         )
 
     @classmethod

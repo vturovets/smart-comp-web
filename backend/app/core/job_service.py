@@ -53,9 +53,13 @@ class JobService:
         file1: bytes | None = None,
         file2: bytes | None = None,
         kw_bundle: bytes | None = None,
+        user_id: str | None = None,
     ) -> JobRecord:
         job_id = str(uuid.uuid4())
         job_paths = prepare_job_paths(job_id, self.settings.storage_root)
+
+        if self.settings.auth_enabled and not user_id:
+            raise ApiError(401, "UNAUTHENTICATED", "Authentication required.")
 
         resolved_config = self._resolve_config(config)
         (job_paths.input_dir / "config.json").write_text(json.dumps(resolved_config), encoding="utf-8")
@@ -85,7 +89,7 @@ class JobService:
         else:  # pragma: no cover - defensive branch
             raise ApiError(400, "INVALID_JOB_TYPE", "Unsupported jobType.")
 
-        record = worker_tasks.enqueue_job(job_type.value, payload=payload, job_id=job_id)
+        record = worker_tasks.enqueue_job(job_type.value, payload=payload, job_id=job_id, user_id=user_id)
         return record
 
     def _resolve_config(self, overrides: ConfigOverrides) -> dict[str, Any]:
@@ -127,13 +131,15 @@ class JobService:
 
         return layout
 
-    def get_job(self, job_id: str) -> JobRecord | None:
-        return self.repository.get(job_id)
-
-    def cancel_job(self, job_id: str) -> JobRecord:
+    def get_job(self, job_id: str, *, user_id: str | None = None) -> JobRecord | None:
         record = self.repository.get(job_id)
         if not record:
-            raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
+            return None
+        self._authorize(record, user_id)
+        return record
+
+    def cancel_job(self, job_id: str, *, user_id: str | None = None) -> JobRecord:
+        record = self._get_record(job_id, user_id=user_id)
         if record.status in {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}:
             raise ApiError(409, "INVALID_STATE", f"Job {job_id} is already {record.status.value}.")
 
@@ -151,10 +157,8 @@ class JobService:
             cleanup_job(prepare_job_paths(job_id, self.settings.storage_root))
         return updated
 
-    def get_results(self, job_id: str) -> dict[str, Any]:
-        record = self.repository.get(job_id)
-        if not record:
-            raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
+    def get_results(self, job_id: str, *, user_id: str | None = None) -> dict[str, Any]:
+        record = self._get_record(job_id, user_id=user_id)
         if record.status != JobStatus.COMPLETED:
             raise ApiError(409, "NOT_READY", f"Job {job_id} is not completed.")
 
@@ -163,10 +167,8 @@ class JobService:
             raise ApiError(404, "NOT_FOUND", "Results not available for this job.")
         return json.loads(results_path.read_text(encoding="utf-8"))
 
-    def list_artifacts(self, job_id: str) -> list[dict[str, Any]]:
-        record = self.repository.get(job_id)
-        if not record:
-            raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
+    def list_artifacts(self, job_id: str, *, user_id: str | None = None) -> list[dict[str, Any]]:
+        record = self._get_record(job_id, user_id=user_id)
         output_dir = self._output_dir(job_id)
         if not output_dir.exists():
             return []
@@ -187,7 +189,8 @@ class JobService:
             )
         return artifacts
 
-    def get_artifact_path(self, job_id: str, artifact_name: str) -> Path:
+    def get_artifact_path(self, job_id: str, artifact_name: str, *, user_id: str | None = None) -> Path:
+        self._get_record(job_id, user_id=user_id)
         output_dir = self._output_dir(job_id)
         try:
             target = safe_join(output_dir, artifact_name)
@@ -203,6 +206,21 @@ class JobService:
         except ValueError as exc:
             raise ApiError(400, "INVALID_JOB", str(exc)) from exc
         return job_root / "output"
+
+    def _get_record(self, job_id: str, *, user_id: str | None) -> JobRecord:
+        record = self.repository.get(job_id)
+        if not record:
+            raise ApiError(404, "NOT_FOUND", f"Job {job_id} not found.")
+        self._authorize(record, user_id)
+        return record
+
+    def _authorize(self, record: JobRecord, user_id: str | None) -> None:
+        if not self.settings.auth_enabled:
+            return
+        if user_id is None:
+            raise ApiError(401, "UNAUTHENTICATED", "Authentication required.")
+        if record.user_id and record.user_id != user_id:
+            raise ApiError(403, "FORBIDDEN", "You do not have access to this job.")
 
 
 def _utcnow() -> datetime:
