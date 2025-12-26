@@ -100,6 +100,7 @@ def api_client(
     importlib.reload(deps)
 
     monkeypatch.setattr(worker_tasks, "get_redis_client", lambda: fake_redis)
+    worker_tasks._cached_redis = fake_redis
     worker_tasks.celery_app.conf.task_always_eager = True
     worker_tasks.celery_app.conf.task_eager_propagates = True
 

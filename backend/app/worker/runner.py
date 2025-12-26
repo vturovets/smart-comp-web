@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any, Callable
 
 from app.core.config import Settings, get_settings
 from app.core.jobs import JobRecord, JobRepository, JobSemaphore, JobStatus
 from app.core.storage import JobPaths, cleanup_after_completion, cleanup_job
+from app.worker.smart_comp_executor import SmartCompExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -129,48 +128,24 @@ class JobRunner:
         payload: dict[str, Any],
         deadline: datetime,
     ) -> None:
-        """Run bootstrap/permutation loops with periodic cancellation/timeout checks."""
-        iterations_bootstrap = int(payload.get("bootstrapIterations") or 5)
-        iterations_permutation = int(payload.get("permutationCount") or 5)
-
-        writer = JobArtifactWriter(job_paths)
-
-        self.repository.update_progress(job_id, percent=5, step="prepare", message="Preparing inputs")
-        writer.write_placeholder("inputs.ready")
-        self._guard(job_id, deadline)
-
-        if "KW" in job_type.upper() or "PERMUT" in job_type.upper():
-            self._permutation_loop(job_id, iterations_permutation, deadline)
-        else:
-            self._bootstrap_loop(job_id, iterations_bootstrap, deadline)
-
-        writer.write_placeholder("dataset_cleaned.csv")
-        writer.write_results(job_id, job_type, payload)
-        writer.write_log()
+        """Run Smart-Comp execution and enforce cancellation/timeout checks."""
+        self.repository.update_progress(job_id, percent=2, step="prepare", message="Preparing Smart-Comp inputs")
+        executor = SmartCompExecutor(
+            job_id,
+            job_type,
+            job_paths,
+            payload,
+            progress_cb=lambda percent, step, message=None: self.repository.update_progress(
+                job_id,
+                percent=percent,
+                step=step,
+                message=message,
+            ),
+            guard_cb=lambda: self._guard(job_id, deadline),
+        )
+        executor.run()
         self.repository.update_progress(job_id, percent=90, step="finalize", message="Finalizing outputs")
         self._guard(job_id, deadline)
-
-    def _bootstrap_loop(self, job_id: str, iterations: int, deadline: datetime) -> None:
-        for index in range(iterations):
-            self._guard(job_id, deadline)
-            percent = 5 + ((index + 1) / max(iterations, 1)) * 70
-            self.repository.update_progress(
-                job_id,
-                percent=percent,
-                step="bootstrap",
-                message=f"Bootstrap iteration {index + 1}/{iterations}",
-            )
-
-    def _permutation_loop(self, job_id: str, iterations: int, deadline: datetime) -> None:
-        for index in range(iterations):
-            self._guard(job_id, deadline)
-            percent = 5 + ((index + 1) / max(iterations, 1)) * 70
-            self.repository.update_progress(
-                job_id,
-                percent=percent,
-                step="permutation",
-                message=f"Permutation {index + 1}/{iterations}",
-            )
 
     def _guard(self, job_id: str, deadline: datetime) -> None:
         if self.repository.is_cancel_requested(job_id):
@@ -181,71 +156,8 @@ class JobRunner:
             raise JobTimeoutError(f"Job {job_id} exceeded timeout of {self.settings.job_timeout_seconds}s")
 
 
-class JobArtifactWriter:
-    """Persists placeholder outputs to ensure cleanup paths exist."""
-
-    def __init__(self, job_paths: JobPaths) -> None:
-        self.job_paths = job_paths
-
-    def write_placeholder(self, name: str) -> Path:
-        target = self.job_paths.output_dir / name
-        target.write_text("placeholder", encoding="utf-8")
-        return target
-
-    def write_log(self) -> Path:
-        self.job_paths.log_file.write_text("Smart-Comp execution log placeholder", encoding="utf-8")
-        return self.job_paths.log_file
-
-    def write_results(self, job_id: str, job_type: str, payload: dict[str, object]) -> Path:
-        results_path = self.job_paths.output_dir / "results.json"
-        results = _default_results(job_id, job_type, payload)
-        results_path.write_text(json.dumps(results), encoding="utf-8")
-        plot_dir = self.job_paths.output_dir / "plots"
-        (plot_dir / "histogram.png").write_text("plot", encoding="utf-8")
-        return results_path
-
-
 def _utcnow() -> datetime:
     now = datetime.now(timezone.utc)
     if now.tzinfo is None:
         return now.replace(tzinfo=timezone.utc)
     return now
-
-
-def _default_results(job_id: str, job_type: str, payload: dict[str, object]) -> dict[str, object]:
-    alpha = payload.get("alpha", 0.05)
-    permutation_count = payload.get("permutationCount", 5)
-    plots = [{"kind": "histogram", "artifactName": "plots/histogram.png"}]
-
-    if job_type == "KW_PERMUTATION":
-        groups = payload.get("kwGroups", ["GroupA", "GroupB"])
-        return {
-            "jobId": job_id,
-            "jobType": job_type,
-            "decision": {"alpha": alpha, "pValue": 0.01},
-            "omnibus": {"permutations": permutation_count, "hStatistic": 1.23},
-            "groups": [
-                {"groupName": group, "files": [{"fileName": f"{group}.csv", "n": 10, "median": 1.1}]}
-                for group in groups
-            ],
-            "plots": plots,
-        }
-
-    if job_type == "DESCRIPTIVE_ONLY":
-        return {
-            "jobId": job_id,
-            "jobType": job_type,
-            "descriptive": {"mean": 1.0, "median": 1.0, "std": 0.1},
-            "plots": plots,
-        }
-
-    decision = {"significant": False, "alpha": alpha, "pValue": 0.12}
-    base = {
-        "jobId": job_id,
-        "jobType": job_type,
-        "decision": decision,
-        "metrics": {"p95": 1.0},
-        "descriptive": {"median": 1.0},
-        "plots": plots,
-    }
-    return base

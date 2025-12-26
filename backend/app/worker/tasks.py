@@ -11,9 +11,22 @@ from app.core.storage import prepare_job_paths
 from app.worker.celery_app import celery_app
 from app.worker.runner import JobRunner
 
+_cached_redis: Redis | None = None
+
 
 def get_redis_client() -> Redis:
     settings = get_settings()
+    global _cached_redis
+    if settings.environment == "test":
+        if _cached_redis is None:
+            try:
+                import fakeredis
+
+                _cached_redis = fakeredis.FakeRedis(decode_responses=True)
+            except Exception:  # pragma: no cover - fallback to real Redis if fakeredis missing
+                _cached_redis = None
+        if _cached_redis is not None:
+            return _cached_redis
     return Redis.from_url(str(settings.redis_url), decode_responses=True)
 
 

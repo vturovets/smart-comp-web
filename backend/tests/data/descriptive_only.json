@@ -1,0 +1,18 @@
+{
+  "jobId": "ed2b2088-5a80-4314-9d3c-57840997c25f",
+  "jobType": "DESCRIPTIVE_ONLY",
+  "descriptive": {
+    "operation": "descriptive analysis",
+    "data source": "file1",
+    "mean": 15.0,
+    "median": 15.0,
+    "min": 10.0,
+    "max": 20.0,
+    "sample size": 6,
+    "standard deviation": 3.7416573867739413,
+    "skewness": 0.0,
+    "mode": 10.0,
+    "p95_empirical": 19.5
+  },
+  "plots": []
+}

@@ -1,0 +1,38 @@
+{
+  "jobId": "9dac2517-f913-45cd-a892-e60cc4b4a6cc",
+  "jobType": "BOOTSTRAP_DUAL",
+  "decision": {
+    "alpha": 0.05,
+    "pValue": 1.0,
+    "significant": false
+  },
+  "metrics": {
+    "sampleSize": 4,
+    "p95": 18.65,
+    "p95_2": 17.599999999999998,
+    "ciLower": 14.375,
+    "ciUpper": 20.0,
+    "ciLower2": 14.7,
+    "ciUpper2": 20.8875,
+    "marginOfErrorPct": 15.080428954423594,
+    "marginOfErrorPct2": 17.578125000000004
+  },
+  "descriptive": {
+    "operation": "descriptive analysis",
+    "data source": "file1",
+    "mean": 15.0,
+    "median": 15.0,
+    "min": 10.0,
+    "max": 20.0,
+    "sample size": 6,
+    "standard deviation": 3.7416573867739413,
+    "skewness": 0.0,
+    "mode": 10.0,
+    "p95_empirical": 19.5,
+    "sampleSize": 6
+  },
+  "plots": [],
+  "interpretation": {
+    "text": "## Summary of Statistical Findings:\n- **P-value** = 1.000 (alpha = 0.05)\n- **Result**: No statistically significant difference was detected.\n- P95 of Sample 1: 18.6\n- P95 of Sample 2: 17.6\n- Margin of Error for Sample 1: \u00b115.1%\n- Margin of Error for Sample 2: \u00b117.6%\n\n## Recommendations:\n- No strong evidence of difference; monitor further if needed.\n- Large margin of error detected. Larger sample size is recommended for more precise estimation."
+  }
+}
