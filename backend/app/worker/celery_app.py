@@ -21,4 +21,6 @@ celery_app.conf.task_time_limit = settings.job_timeout_seconds + 60
 
 @celery_app.on_after_configure.connect
 def announce_startup(sender: Celery, **_: object) -> None:
-    sender.log.info("Celery worker bootstrapped for %s", settings.environment)
+    log = getattr(sender, "log", None)
+    if log and hasattr(log, "info"):
+        log.info("Celery worker bootstrapped for %s", settings.environment)

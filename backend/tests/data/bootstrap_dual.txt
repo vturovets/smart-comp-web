@@ -1,0 +1,16 @@
+p95_1=18.6
+p95_2=17.6
+ci lower p95_1=14.4
+ci upper p95_1=20.0
+ci lower p95_2=14.7
+ci upper p95_2=20.9
+p95_1_moe=15.1
+p95_2_moe=17.6
+p-value=1.00
+alpha=0.05
+sample size=4
+significant difference=False
+ 
+dataset1={'operation': 'descriptive analysis', 'data source': 'file1', 'mean': np.float64(15.0), 'median': np.float64(15.0), 'min': np.float64(10.0), 'max': np.float64(20.0), 'sample size': np.int64(6), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(10.0), 'p95_empirical': np.float64(19.5), 'sampleSize': np.int64(6)}
+dataset2={'operation': 'descriptive analysis', 'data source': 'file2', 'mean': np.float64(16.0), 'median': np.float64(16.0), 'min': np.float64(11.0), 'max': np.float64(21.0), 'sample size': np.int64(6), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(11.0), 'p95_empirical': np.float64(20.5)}
+ 

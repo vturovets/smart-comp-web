@@ -57,7 +57,11 @@ def configure_settings(monkeypatch: pytest.MonkeyPatch, tmp_path, *, timeout_sec
     monkeypatch.setenv("APP_STORAGE_ROOT", str(tmp_path))
     monkeypatch.setenv("APP_JOB_TIMEOUT_SECONDS", str(timeout_seconds))
     get_settings.cache_clear()
-    return get_settings()
+    settings = get_settings()
+    import app.worker.tasks as worker_tasks
+
+    worker_tasks._cached_redis = None
+    return settings
 
 
 def test_runner_cancels_and_cleans(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
@@ -67,6 +71,7 @@ def test_runner_cancels_and_cleans(monkeypatch: pytest.MonkeyPatch, tmp_path) ->
     semaphore = JobSemaphore(redis_client)
     job_id = "cancelled-job"
     job_paths = prepare_job_paths(job_id, settings.storage_root)
+    (job_paths.input_dir / "file1.csv").write_text("value\n1\n2\n3\n4\n5", encoding="utf-8")
     repository.save(JobRecord(job_id=job_id, job_type="BOOTSTRAP_SINGLE", status=JobStatus.QUEUED))
     repository.mark_cancel_flag(job_id)
 
@@ -90,24 +95,31 @@ def test_runner_times_out(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     semaphore = JobSemaphore(redis_client)
     job_id = "timeout-job"
     job_paths = prepare_job_paths(job_id, settings.storage_root)
+    (job_paths.input_dir / "file1.csv").write_text("value\n1\n2\n3\n4\n5\n6\n7\n8", encoding="utf-8")
     repository.save(JobRecord(job_id=job_id, job_type="BOOTSTRAP_SINGLE", status=JobStatus.QUEUED))
 
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     ticks = iter(
         [
             base,  # started_at
-            base + timedelta(seconds=0.1),  # guard after prepare
-            base + timedelta(seconds=0.3),  # loop 1
-            base + timedelta(seconds=2),  # loop 2 triggers timeout
-            base + timedelta(seconds=2),  # finish timestamps
+            base + timedelta(seconds=0.1),
+            base + timedelta(seconds=0.3),
+            base + timedelta(seconds=0.5),
+            base + timedelta(seconds=0.7),
+            base + timedelta(seconds=1.2),  # triggers timeout
+            base + timedelta(seconds=1.5),
+            base + timedelta(seconds=1.5),
         ],
     )
+    last_tick = base
 
     def fake_now() -> datetime:
+        nonlocal last_tick
         try:
-            return next(ticks)
+            last_tick = next(ticks)
         except StopIteration:
-            return base + timedelta(seconds=2)
+            pass
+        return last_tick
 
     monkeypatch.setattr("app.worker.runner._utcnow", fake_now)
 
@@ -128,12 +140,22 @@ def test_enqueue_run_and_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path) -> N
     settings = configure_settings(monkeypatch, tmp_path, timeout_seconds=5)
     fake_redis = _MemoryRedis()
     monkeypatch.setattr(worker_tasks, "get_redis_client", lambda: fake_redis)
+    worker_tasks._cached_redis = fake_redis
+    monkeypatch.setattr(worker_tasks, "get_settings", lambda: settings)
     celery_app.conf.task_always_eager = True
     celery_app.conf.task_eager_propagates = True
 
+    job_id = "kw-job"
+    job_paths = prepare_job_paths(job_id, settings.storage_root)
+    (job_paths.input_dir / "GroupA").mkdir(parents=True, exist_ok=True)
+    (job_paths.input_dir / "GroupB").mkdir(parents=True, exist_ok=True)
+    (job_paths.input_dir / "GroupA" / "a1.csv").write_text("value\n1\n2\n3", encoding="utf-8")
+    (job_paths.input_dir / "GroupB" / "b1.csv").write_text("value\n4\n5\n6", encoding="utf-8")
+
     record = worker_tasks.enqueue_job(
         "KW_PERMUTATION",
-        {"permutationCount": 3, "cleanAll": True},
+        {"permutationCount": 3, "cleanAll": True, "kwGroups": ["GroupA", "GroupB"]},
+        job_id=job_id,
     )
     refreshed = JobRepository(fake_redis).get(record.job_id)
     assert refreshed is not None
@@ -142,6 +164,6 @@ def test_enqueue_run_and_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path) -> N
     assert refreshed.progress.step == "completed"
 
     results_path = settings.storage_root / record.job_id / "output" / "results.json"
-    cleaned_path = settings.storage_root / record.job_id / "output" / "dataset_cleaned.csv"
+    cleaned_files = list((settings.storage_root / record.job_id / "output").glob("*_cleaned.csv"))
     assert results_path.exists()
-    assert not cleaned_path.exists()
+    assert not cleaned_files

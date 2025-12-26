@@ -1,0 +1,12 @@
+p95_1=19.6
+threshold=18.0
+ci lower p95_1=19.1
+ci upper p95_1=20.0
+p95_1_moe=2.3
+p-value=0.00
+alpha=0.05
+sample size=4
+significant difference=True
+ 
+dataset1={'operation': 'descriptive analysis', 'data source': 'file1', 'mean': np.float64(15.0), 'median': np.float64(15.0), 'min': np.float64(10.0), 'max': np.float64(20.0), 'sample size': np.int64(6), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(10.0), 'p95_empirical': np.float64(19.5), 'sampleSize': np.int64(6)}
+ 

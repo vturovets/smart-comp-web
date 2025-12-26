@@ -71,12 +71,19 @@ def validate_kw_zip(raw_bytes: bytes) -> KWZipLayout:
     layout: str
     groups: dict[str, list[str]] = {}
 
+    normalized_sources: dict[str, str] = {}
+
     if has_folder_csv:
         layout = "A"
         for info in csv_entries:
             path = PurePath(info.filename)
             group_raw = path.parts[0]
             group = _sanitize_group_name(group_raw)
+            normalized = group.lower()
+            previous_source = normalized_sources.get(normalized)
+            if previous_source is not None and previous_source != group_raw:
+                raise KWZipValidationError("DUPLICATE_GROUP_NAME", "Group names collide after sanitization.")
+            normalized_sources.setdefault(normalized, group_raw)
             groups.setdefault(group, []).append(info.filename)
     else:
         layout = "B"
@@ -88,6 +95,11 @@ def validate_kw_zip(raw_bytes: bytes) -> KWZipLayout:
                     "Nested folders are not allowed for flat KW ZIP layout.",
                 )
             group = _sanitize_group_name(path.stem)
+            normalized = group.lower()
+            previous_source = normalized_sources.get(normalized)
+            if previous_source is not None and previous_source != path.stem:
+                raise KWZipValidationError("DUPLICATE_GROUP_NAME", "Group names collide after sanitization.")
+            normalized_sources.setdefault(normalized, path.stem)
             groups.setdefault(group, []).append(info.filename)
 
     _ensure_group_rules(groups)
