@@ -16,6 +16,7 @@ dependencies = [
     "celery>=5.3.6,<6.0.0",
     "redis>=5.0.0,<6.0.0",
     "python-dotenv>=1.0.1,<2.0.0",
+    "python-multipart>=0.0.9,<0.1.0",
     "smart-comp>=0.1.0",
 ]
 
@@ -31,7 +32,11 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning",
+    "ignore:'asyncio.iscoroutinefunction' is deprecated.*:DeprecationWarning",
+]
 
 [tool.ruff]
 src = ["app"]

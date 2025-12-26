@@ -1,0 +1,46 @@
+{
+  "consumer": "smart-comp-frontend",
+  "provider": "smart-comp-api",
+  "interactions": [
+    {
+      "description": "health endpoint",
+      "request": {
+        "method": "GET",
+        "path": "/api/health"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "description": "config defaults",
+      "request": {
+        "method": "GET",
+        "path": "/api/config/defaults"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "alpha": 0.05
+        }
+      }
+    },
+    {
+      "description": "results for completed job",
+      "providerState": "completed KW job",
+      "request": {
+        "method": "GET",
+        "path": "/api/jobs/{{jobId}}/results"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jobType": "KW_PERMUTATION"
+        }
+      }
+    }
+  ]
+}
