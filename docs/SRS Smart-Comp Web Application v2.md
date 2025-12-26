@@ -194,7 +194,7 @@ The web application is a new front‑end layer on top of the existing Smart‑Co
    
    2. The system run the analysis according to the [descriptive analysis] section of config.txt
    
-   3.  Results and plots (if requested) are displayed; users can download reports.
+   3. Results and plots (if requested) are displayed; users can download reports.
 
 4. **Kruskal–Wallis Permutation Test (see also Annex 1, section D):**
    
