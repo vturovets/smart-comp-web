@@ -1,16 +1,67 @@
-from fastapi import FastAPI
+import logging
+import time
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import PlainTextResponse
 
-from .api.errors import ApiError, api_error_handler, http_error_handler, request_validation_error_handler
+from .api.errors import (
+    ApiError,
+    _build_error_response,
+    api_error_handler,
+    http_error_handler,
+    request_validation_error_handler,
+)
 from .api.routes import router as api_router
 from .core.config import get_settings
+from .core.observability import (
+    bind_request_context,
+    configure_logging,
+    render_metrics,
+    CONTENT_TYPE_LATEST,
+    PROMETHEUS_AVAILABLE,
+    record_request_metrics,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class _RequestContextMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        trace_id = request.headers.get("X-Trace-ID")
+        bind_request_context(request_id, trace_id)
+
+        start = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            duration = time.perf_counter() - start
+            record_request_metrics(request.method, request.url.path, 500, duration)
+            logger.exception("Unhandled error for %s %s", request.method, request.url.path)
+            response = _build_error_response(
+                500,
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred.",
+                details={},
+            )
+
+        duration = time.perf_counter() - start
+        record_request_metrics(request.method, request.url.path, response.status_code, duration)
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Trace-ID"] = trace_id or request_id
+        return response
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(logging.DEBUG if settings.debug else logging.INFO)
     app = FastAPI(title=settings.project_name, version=settings.project_version)
+    app.add_middleware(_RequestContextMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
@@ -29,6 +80,16 @@ def create_app() -> FastAPI:
     @app.get("/", tags=["root"])
     def read_root() -> dict[str, str]:
         return {"message": "Smart Comp API"}
+
+    @app.get("/metrics", include_in_schema=False)
+    def metrics():
+        if not PROMETHEUS_AVAILABLE:
+            return PlainTextResponse(
+                "Prometheus metrics unavailable; install prometheus-client to enable /metrics.",
+                status_code=503,
+            )
+        data = render_metrics()
+        return PlainTextResponse(data, media_type=CONTENT_TYPE_LATEST)
 
     return app
 

@@ -98,11 +98,17 @@ class JobService:
         return merged
 
     def _store_file(self, destination: Path, data: bytes) -> None:
-        ensure_within_size_limit(len(data), self._max_bytes)
+        try:
+            ensure_within_size_limit(len(data), self._max_bytes)
+        except ValueError as exc:
+            raise ApiError(413, "UPLOAD_TOO_LARGE", str(exc)) from exc
         destination.write_bytes(data)
 
     def _validate_and_store_kw_bundle(self, job_paths: JobPaths, kw_bundle: bytes) -> KWZipLayout:
-        ensure_within_size_limit(len(kw_bundle), self._max_bytes)
+        try:
+            ensure_within_size_limit(len(kw_bundle), self._max_bytes)
+        except ValueError as exc:
+            raise ApiError(413, "UPLOAD_TOO_LARGE", str(exc)) from exc
         try:
             layout = validate_kw_zip(kw_bundle)
         except KWZipValidationError as exc:

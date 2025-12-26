@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from app.core.config import Settings, get_settings
 from app.core.jobs import JobRecord, JobRepository, JobSemaphore, JobStatus
+from app.core.observability import bind_job_context, configure_logging, job_logging, record_job_completion
 from app.core.storage import JobPaths, cleanup_after_completion, cleanup_job
 from app.worker.smart_comp_executor import SmartCompExecutor
 
@@ -37,6 +38,7 @@ class JobRunner:
         self.repository = repository
         self.semaphore = semaphore
         self.settings = settings or get_settings()
+        configure_logging(logging.DEBUG if self.settings.debug else logging.INFO)
 
     def execute(
         self,
@@ -52,6 +54,7 @@ class JobRunner:
             job_type=job_type,
             status=JobStatus.QUEUED,
         )
+        bind_job_context(job_id)
         if set_task_id:
             record = set_task_id(record) or record
         record = self.repository.save(record)
@@ -65,12 +68,14 @@ class JobRunner:
         )
         if not acquired:
             logger.warning("Concurrency limit reached, rejecting job %s", job_id)
+            finished_at = _utcnow()
             finished = self.repository.update_status(
                 job_id,
                 JobStatus.FAILED,
                 error="Concurrency limit reached",
-                finished_at=_utcnow(),
+                finished_at=finished_at,
             )
+            record_job_completion(job_type, JobStatus.FAILED.value, 0.0)
             cleanup_job(job_paths)
             return finished
 
@@ -80,40 +85,48 @@ class JobRunner:
 
         try:
             self._run_job(job_id, job_type, job_paths, payload, deadline)
+            finished_at = _utcnow()
             finished = self.repository.update_status(
                 job_id,
                 JobStatus.COMPLETED,
-                finished_at=_utcnow(),
+                finished_at=finished_at,
             )
             self.repository.update_progress(job_id, percent=100.0, step="completed", message=None)
+            record_job_completion(job_type, JobStatus.COMPLETED.value, (finished_at - started_at).total_seconds())
             cleanup_after_completion(job_paths, payload.get("cleanAll", False))
             return finished
         except JobCancelledError:
+            finished_at = _utcnow()
             finished = self.repository.update_status(
                 job_id,
                 JobStatus.CANCELLED,
-                finished_at=_utcnow(),
+                finished_at=finished_at,
                 error="Cancelled",
             )
+            record_job_completion(job_type, JobStatus.CANCELLED.value, (finished_at - started_at).total_seconds())
             cleanup_job(job_paths)
             return finished
         except JobTimeoutError as exc:
+            finished_at = _utcnow()
             finished = self.repository.update_status(
                 job_id,
                 JobStatus.FAILED,
-                finished_at=_utcnow(),
+                finished_at=finished_at,
                 error=str(exc),
             )
+            record_job_completion(job_type, JobStatus.FAILED.value, (finished_at - started_at).total_seconds())
             cleanup_job(job_paths)
             return finished
         except Exception as exc:  # pragma: no cover - defensive guardrail
             logger.exception("Unhandled error during job %s", job_id)
+            finished_at = _utcnow()
             finished = self.repository.update_status(
                 job_id,
                 JobStatus.FAILED,
-                finished_at=_utcnow(),
+                finished_at=finished_at,
                 error=str(exc),
             )
+            record_job_completion(job_type, JobStatus.FAILED.value, (finished_at - started_at).total_seconds())
             cleanup_job(job_paths)
             return finished
         finally:
@@ -129,21 +142,23 @@ class JobRunner:
         deadline: datetime,
     ) -> None:
         """Run Smart-Comp execution and enforce cancellation/timeout checks."""
+        bind_job_context(job_id)
         self.repository.update_progress(job_id, percent=2, step="prepare", message="Preparing Smart-Comp inputs")
-        executor = SmartCompExecutor(
-            job_id,
-            job_type,
-            job_paths,
-            payload,
-            progress_cb=lambda percent, step, message=None: self.repository.update_progress(
+        with job_logging(job_id, job_paths.log_file):
+            executor = SmartCompExecutor(
                 job_id,
-                percent=percent,
-                step=step,
-                message=message,
-            ),
-            guard_cb=lambda: self._guard(job_id, deadline),
-        )
-        executor.run()
+                job_type,
+                job_paths,
+                payload,
+                progress_cb=lambda percent, step, message=None: self.repository.update_progress(
+                    job_id,
+                    percent=percent,
+                    step=step,
+                    message=message,
+                ),
+                guard_cb=lambda: self._guard(job_id, deadline),
+            )
+            executor.run()
         self.repository.update_progress(job_id, percent=90, step="finalize", message="Finalizing outputs")
         self._guard(job_id, deadline)
 
