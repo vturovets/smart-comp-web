@@ -10,6 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from starlette import status
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.observability import get_request_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +27,7 @@ class ApiError(Exception):
 
 
 def _build_error_response(status_code: int, code: str, message: str, *, details: dict[str, Any] | None = None) -> JSONResponse:
-    request_id = str(uuid4())
+    request_id = get_request_id(str(uuid4()))
     return JSONResponse(
         status_code=status_code,
         content={

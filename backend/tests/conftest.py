@@ -86,6 +86,21 @@ def api_client(
     test_settings,
     fake_redis: StubRedis,
 ) -> Generator[TestClient, None, None]:
+    yield build_test_client(monkeypatch, fake_redis)
+
+
+def build_test_client(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_redis: StubRedis,
+    env_overrides: dict[str, str] | None = None,
+) -> TestClient:
+    for key, value in (env_overrides or {}).items():
+        monkeypatch.setenv(key, value)
+
+    storage_root_env = (env_overrides or {}).get("APP_STORAGE_ROOT")
+    if storage_root_env:
+        Path(storage_root_env).mkdir(parents=True, exist_ok=True)
+
     import app.api.dependencies as deps
     import app.worker.celery_app as celery_module
     import app.worker.tasks as worker_tasks
@@ -107,7 +122,7 @@ def api_client(
     app_instance = importlib.reload(main).create_app()
     app_instance.dependency_overrides[deps.get_job_repository] = lambda: JobRepository(fake_redis)
     app_instance.dependency_overrides[deps.get_redis_client_dep] = lambda: fake_redis
-    yield TestClient(app_instance)
+    return TestClient(app_instance)
 
 
 @pytest.fixture
