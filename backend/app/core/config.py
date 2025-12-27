@@ -27,11 +27,11 @@ class Settings(BaseSettings):
     google_client_secret: str | None = Field(None, description="Google OAuth2 client secret")
 
     redis_url: AnyUrl | str = Field(
-        "redis://redis:6379/0",
+        "redis://localhost:6379/0",
         description="Redis connection string for Celery broker and result backend",
     )
     result_backend: AnyUrl | str = Field(
-        "redis://redis:6379/1",
+        "redis://localhost:6379/1",
         description="Celery result backend connection string",
     )
     task_queue: str = Field("smart-comp", description="Default Celery task queue")
