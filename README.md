@@ -17,11 +17,13 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
 
 ## Quick start with Docker Compose
 
-1. Copy environment defaults if you want to customize them:
-   ```bash
-   cp backend/.env.example backend/.env
-   cp frontend/.env.example frontend/.env
-   ```
+1. Choose your environment files:
+   - Docker Compose loads `backend/.env.docker` (points Redis URLs at `redis://redis:6379/*`) and `frontend/.env.example`. Copy these if you need overrides:
+     ```bash
+     cp backend/.env.docker backend/.env.docker.local
+     cp frontend/.env.example frontend/.env
+     ```
+   - Running services directly on your host uses `backend/.env.example` (Redis at `localhost`).
 2. Build and start the stack:
    ```bash
    docker-compose up --build
@@ -29,7 +31,7 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
 3. Access the services:
    - Frontend: http://localhost:5173 (served from the container on port 4173)
    - API: http://localhost:8000 (FastAPI app)
-   - Redis: localhost:6379
+   - Redis: localhost:6379 from your host; inside Compose services refer to it as `redis://redis:6379/*`
 
 ## Backend development
 
@@ -104,5 +106,5 @@ Set `VITE_API_BASE_URL` in `frontend/.env` (default: `http://localhost:8000`) to
 
 ## Environment variables
 
-- Backend defaults live in `backend/.env.example` (CORS origins, Redis URLs, storage root, task queue, and upload limits).
+- Backend defaults live in `backend/.env.example` (CORS origins, Redis URLs, storage root, task queue, and upload limits) for running the API directly on your host. Docker Compose uses `backend/.env.docker`, which swaps Redis URLs to `redis://redis:6379/*` so the API and worker connect to the Redis service container.
 - Frontend defaults live in `frontend/.env.example` and configure the API base URL for the UI.
