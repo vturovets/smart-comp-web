@@ -8,13 +8,13 @@ Create a virtual environment and install the project with dev extras:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .\.venv\Scripts\Activate.ps1
 pip install -e .[dev]
 ```
 
-Run the API locally (through Intellij IDEA PowerShell):
+## Run the API locally (through Intellij IDEA PowerShell):
 
-Terminal A — start Redis (Docker)
+### Terminal A — start Redis (Docker)
 
 `docker run --name smartcomp-redis -p 6379:6379 -d redis:7`
 
@@ -22,7 +22,7 @@ Terminal A — start Redis (Docker)
 
 `docker exec -it smartcomp-redis redis-cli ping # PONG`
 
-## Terminal B — start Celery worker
+### Terminal B — start Celery worker
 
 `cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
 
@@ -34,7 +34,7 @@ Terminal A — start Redis (Docker)
 
 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
-## Terminal C — start the API (Uvicorn)
+### Terminal C — start the API (Uvicorn)
 
 `cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
 
@@ -42,7 +42,7 @@ Terminal A — start Redis (Docker)
 
 `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
 
-## Terminal D — start the frontend
+### Terminal D — start the frontend
 
 `cd frontend`
 
