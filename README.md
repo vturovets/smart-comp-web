@@ -35,21 +35,45 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
 
 Create a virtual environment, install dependencies, and run the API:
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
 
-Run the Celery worker (requires Redis):
+## Run the API locally (through Intellij IDEA PowerShell):
 
-```bash
-celery -A app.worker.celery_app worker --loglevel=INFO
-```
+### Terminal A — start Redis (Docker)
 
-Backend tests and linting:
+`docker run --name smartcomp-redis -p 6379:6379 -d redis:7`
+
+(Optional sanity check)
+
+`docker exec -it smartcomp-redis redis-cli ping # PONG`
+
+### Terminal B — start Celery worker
+
+`cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
+
+`cd backend`
+
+`.\celery_worker.ps1`
+
+> If PowerShell blocks scripts, run once:
+
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+### Terminal C — start the API (Uvicorn)
+
+`cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
+
+`cd backend`
+
+`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+
+### Terminal D — start the frontend
+
+`cd frontend`
+
+`npm run dev`
+
+
+## Backend tests and linting:
 
 ```bash
 pytest

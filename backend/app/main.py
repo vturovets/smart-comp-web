@@ -82,11 +82,14 @@ class _AuthMiddleware(BaseHTTPMiddleware):
 def create_app() -> FastAPI:
     settings = get_settings()
     if settings.auth_enabled:
-        missing = [name for name in ("google_client_id", "google_client_secret") if not getattr(settings, name)]
+        missing = [
+            name
+            for name in ("google_client_id", "google_client_secret")
+            if not getattr(settings, name)
+        ]
         if missing:
             raise RuntimeError(
-                "Authentication enabled but missing required settings: "
-                + ", ".join(missing),
+                "Authentication enabled but missing required settings: " + ", ".join(missing),
             )
         if not settings.allowed_domains:
             raise RuntimeError("Authentication enabled but no allowed_domains configured.")
