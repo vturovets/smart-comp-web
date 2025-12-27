@@ -12,16 +12,41 @@ source .venv/bin/activate
 pip install -e .[dev]
 ```
 
-Run the API locally:
+Run the API locally (through Intellij IDEA PowerShell):
 
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+Terminal A — start Redis (Docker)
 
-Run the Celery worker locally (requires Redis):
+`docker run --name smartcomp-redis -p 6379:6379 -d redis:7`
 
-```bash
-celery -A app.worker.celery_app worker --loglevel=INFO
+(Optional sanity check)
+
+`docker exec -it smartcomp-redis redis-cli ping # PONG`
+
+## Terminal B — start Celery worker
+
+`cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
+
+`cd backend`
+
+`.\celery_worker.ps1`
+
+> If PowerShell blocks scripts, run once:
+
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+## Terminal C — start the API (Uvicorn)
+
+`cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
+
+`cd backend`
+
+`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+
+## Terminal D — start the frontend
+
+`cd frontend`
+
+`npm run dev`
 ```
 
 Run tests and linting:
