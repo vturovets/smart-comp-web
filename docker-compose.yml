@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file:
-      - backend/.env.example
+      - backend/.env.docker
     environment:
       - APP_DEBUG=true
     volumes:
@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file:
-      - backend/.env.example
+      - backend/.env.docker
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO"]
     depends_on:
       - redis
