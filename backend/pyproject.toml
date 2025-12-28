@@ -36,8 +36,9 @@ dev = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = [
-    "ignore:'asyncio.iscoroutinefunction'.*slated for removal.*:DeprecationWarning",
     "error",
+    "ignore:'asyncio.iscoroutinefunction'.*slated for removal.*:DeprecationWarning",
+    "ignore:'asyncio.get_event_loop_policy' is deprecated.*:DeprecationWarning",
     "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning",
 
 ]
