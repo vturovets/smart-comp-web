@@ -9,6 +9,40 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
 - `docs/`: SRS and SDD documents for the Smart Comp web application.
 - `docker-compose.yml`: Local orchestration for the API, Celery worker, Redis, and frontend.
 
+## Architecture overview
+
+**Runtime components**
+
+- **Frontend (React + Vite)** – A single-page app in `frontend/` that uses React Query for data fetching and mutation, Material UI for layout, and Plotly for chart rendering. `VITE_API_BASE_URL` points the SPA at the FastAPI host.
+- **API (FastAPI)** – Lives in `backend/app`; exposes `/api/*` routes, applies optional Google OAuth-based auth, enforces request/response observability, and streams artifacts. All requests pass through request/trace ID middleware and CORS middleware configured from `backend/app/core/config.py`.
+- **Async worker (Celery + Redis)** – Defined in `backend/app/worker`; accepts jobs from the API via Redis, runs Smart-Comp computations, tracks progress in Redis, and writes results/artifacts to disk.
+- **Storage** – Per-job directories rooted at `SMARTCOMP_STORAGE_ROOT` (`/tmp/smartcomp` by default) with `input/` and `output/` subfolders. Artifacts such as `results.json`, Plotly JSON traces, cleaned CSVs, and `tool.log` live under `output/`.
+- **Messaging** – Redis brokers Celery tasks and stores job metadata (status, progress, cancel flags). Concurrency is guarded with a semaphore keyed in Redis.
+
+**Execution boundaries**
+
+- `backend/app/main.py` wires middleware, the `/metrics` endpoint, and the API router.
+- `backend/app/api/routes.py` houses REST endpoints for config defaults, job creation, status, results, artifacts, and cancellation.
+- `backend/app/core/job_service.py` orchestrates validation, file handling, Smart-Comp config resolution, and enqueues Celery tasks.
+- `backend/app/worker/runner.py` and `backend/app/worker/smart_comp_executor.py` manage worker-side lifecycle, cancellation/timeout checks, and persistence of outputs.
+
+## Application flows
+
+### Frontend workflow
+
+1. On load, the SPA builds an API client with `VITE_API_BASE_URL` and fetches `/api/config/defaults` to hydrate the job form with Smart-Comp defaults.
+2. Users choose a job type (descriptive-only, bootstrap single/dual, or Kruskal–Wallis) and upload CSVs or a KW ZIP. Submitting the form POSTs `multipart/form-data` to `/api/jobs` with `jobType`, JSON `config`, and required files.
+3. The app stores the returned `jobId`, then React Query polls `/api/jobs/{jobId}` every ~1.5s until the job reaches `COMPLETED` or `FAILED`. Cancel buttons call `/api/jobs/{jobId}/cancel`.
+4. When a job completes, the client fetches `/api/jobs/{jobId}/results` for normalized results and `/api/jobs/{jobId}/artifacts` to list downloadable files. Plotly components call `/api/jobs/{jobId}/artifacts/{name}` to load trace JSON or download assets.
+
+### Backend + worker lifecycle
+
+1. **Create job** – `POST /api/jobs` validates payloads (`file1`, `file2`, `kwBundle` depending on `jobType`), merges overrides with Smart-Comp defaults, writes inputs under `SMARTCOMP_STORAGE_ROOT/<jobId>/input`, and enqueues a Celery task. When auth is enabled, the job is associated with the caller’s user ID.
+2. **Progress + guarding** – The Celery task (`app.worker.tasks.run_job`) acquires a Redis-backed semaphore to honor `SMARTCOMP_MAX_CONCURRENT_JOBS`, sets status to `RUNNING`, and streams progress updates (percent, step, message) back to Redis. It periodically checks for cancel flags and wall-clock timeouts.
+3. **Execution** – `SmartCompExecutor` runs Smart-Comp routines with the resolved config. Artifacts (results JSON/TXT, cleaned CSVs, plots, logs) are written beneath the job’s `output/` directory.
+4. **Completion** – On success, status moves to `COMPLETED` and progress reaches 100%. On failure or timeout, status becomes `FAILED`; on cancellation, status becomes `CANCELLED` and the working directory is removed immediately.
+5. **Retention** – When `cleanAll=true` in the config, intermediate CSVs are removed after completion. A background cleanup process (see docs) is expected to delete job directories older than `SMARTCOMP_JOB_TTL_HOURS`.
+
 ## Prerequisites
 
 - Python 3.10+
