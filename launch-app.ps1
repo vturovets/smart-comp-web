@@ -1,7 +1,8 @@
-Set-StrictMode -Version Latest
 param(
-    [switch] $Verbose
+    [switch] $Verbose = $false
 )
+
+Set-StrictMode -Version Latest
 
 # Enable or suppress verbose output explicitly for older PowerShell versions.
 if ($Verbose) {
