@@ -58,7 +58,7 @@ function Close-Ports {
                     Stop-Process -Id $pid -Force
                 }
                 catch {
-                    Write-Warning "Unable to stop process PID $pid on port $port: $_"
+                    Write-Warning ("Unable to stop process PID {0} on port {1}: {2}" -f $pid, $port, $_)
                 }
             }
         }
