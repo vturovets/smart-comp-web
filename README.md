@@ -67,6 +67,10 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
    - API: http://localhost:8000 (FastAPI app)
    - Redis: localhost:6379 from your host; inside Compose services refer to it as `redis://redis:6379/*`
 
+## Quick start/terminate the app locally through PS scripts
+- to launch: `.\launch-app.ps1`
+- to terminate: `.\stop-app.ps1`
+
 ## How to launch the application locally (through Intellij IDEA PowerShell)
 
 ### Terminal A — start Redis (Docker)
