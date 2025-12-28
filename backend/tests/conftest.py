@@ -14,9 +14,28 @@ from app.core.jobs import JobRepository
 from app.core.job_service import JobService
 
 
+def _register_timeout_inis(parser) -> None:
+    """Ensure timeout options exist even when pytest-timeout is absent."""
+    for name, help_text, default in (
+        ("timeout", "Default per-test timeout in seconds", "30"),
+        ("timeout_method", "Implementation used for enforcing timeouts", "thread"),
+    ):
+        try:
+            parser.addini(name, help=help_text, default=default)
+        except ValueError:
+            # Option already registered (e.g., when pytest-timeout is installed).
+            pass
+
+
+def pytest_load_initial_conftests(args, early_config, parser) -> None:
+    # Make sure options are registered before pytest validates the config file.
+    _register_timeout_inis(parser)
+
+
 def pytest_addoption(parser) -> None:
     # Ensure pytest recognizes asyncio_mode even when pytest-asyncio is not installed.
     parser.addini("asyncio_mode", help="Asyncio plugin mode", default="auto")
+    _register_timeout_inis(parser)
 
 
 class StubRedis:
