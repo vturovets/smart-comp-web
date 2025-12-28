@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
+
 from celery import Celery
+from celery.signals import setup_logging
 
 from app.core.config import get_settings
 
@@ -24,3 +27,13 @@ def announce_startup(sender: Celery, **_: object) -> None:
     log = getattr(sender, "log", None)
     if log and hasattr(log, "info"):
         log.info("Celery worker bootstrapped for %s", settings.environment)
+
+
+@setup_logging.connect
+def configure_celery_logging(**_: object) -> None:
+    """Raise the celery.worker logger level to suppress periodic timer chatter."""
+
+    # Celery reinitializes logging when the worker boots, so set the level via the
+    # setup_logging signal to ensure it sticks.
+    logging.getLogger("celery.worker").setLevel(logging.WARNING)
+    logging.getLogger("celery.worker.strategy").setLevel(logging.WARNING)
