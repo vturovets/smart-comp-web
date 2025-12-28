@@ -1,0 +1,280 @@
+(.venv) PS C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend> pytest -q
+.........................................                                                                                                                                        [100%]
+41 passed in 6.64s
+  + Exception Group Traceback (most recent call last):
+  |   File "<frozen runpy>", line 198, in _run_module_as_main
+  |   File "<frozen runpy>", line 88, in _run_code
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Scripts\pytest.exe\__main__.py", line 6, in <module>
+  |     sys.exit(console_main())
+  |              ~~~~~~~~~~~~^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\config\__init__.py", line 201, in
+ console_main
+  |     code = main()
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\config\__init__.py", line 175, in
+ main
+  |     ret: ExitCode | int = config.hook.pytest_cmdline_main(config=config)
+  |                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+  |     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  |            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+  |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  |            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\pluggy\_callers.py", line 167, in _multicall
+  |     raise exception
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+  |     res = hook_impl.function(*args)
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\main.py", line 336, in pytest_cmdline_main
+  |     return wrap_session(config, _main)
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\main.py", line 331, in wrap_session
+  |     config._ensure_unconfigure()
+  |     ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\config\__init__.py", line 1131, in _ensure_unconfigure
+  |     self._cleanup_stack.close()
+  |     ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "C:\Python314\Lib\contextlib.py", line 627, in close
+  |     self.__exit__(None, None, None)
+  |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  |   File "C:\Python314\Lib\contextlib.py", line 619, in __exit__
+  |     raise exc
+  |   File "C:\Python314\Lib\contextlib.py", line 604, in __exit__
+  |     if cb(*exc_details):
+  |        ~~^^^^^^^^^^^^^^
+  |   File "C:\Python314\Lib\contextlib.py", line 482, in _exit_wrapper
+  |     callback(*args, **kwds)
+  |     ~~~~~~~~^^^^^^^^^^^^^^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 95, in cleanup
+  |     collect_unraisable(config)
+  |     ~~~~~~~~~~~~~~~~~~^^^^^^^^
+  |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 81, in collect_unraisable
+  |     raise ExceptionGroup("multiple unraisable exception warnings", errors)
+  | ExceptionGroup: multiple unraisable exception warnings (80 sub-exceptions)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 2 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 3 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 4 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 5 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 4256, in __del__
+    |     self.tk.call('image', 'delete', self.name)
+    |     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Image.__del__ at 0x000001BCD290B110>: None
+    |
+    +---------------- 6 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 7 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 8 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 9 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 10 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 4256, in __del__
+    |     self.tk.call('image', 'delete', self.name)
+    |     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Image.__del__ at 0x000001BCD290B110>: None
+    |
+    +---------------- 11 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 12 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 13 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 14 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 416, in __del__
+    |     if self._tk.getboolean(self._tk.call("info", "exists", self._name)):
+    |                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Variable.__del__ at 0x000001BCD2A80EB0>: None
+    |
+    +---------------- 15 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Python314\Lib\tkinter\__init__.py", line 4256, in __del__
+    |     self.tk.call('image', 'delete', self.name)
+    |     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | RuntimeError: main thread is not in main loop
+    |
+    | The above exception was the direct cause of the following exception:
+    |
+    | Traceback (most recent call last):
+    |   File "C:\Users\votu\Documents\Private\Resume\portfolio\Business Analyst\Statistical tests\smart-comp-web\backend\.venv\Lib\site-packages\_pytest\unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    |     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored while calling deallocator <function Image.__del__ at 0x000001BCD290B110>: None
+    |
+    +---------------- ... ----------------
+    | and 65 more exceptions
+    +------------------------------------
+Tcl_AsyncDelete: async handler deleted by the wrong thread
