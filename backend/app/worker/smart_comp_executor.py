@@ -11,8 +11,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import numpy as np
 import pandas as pd
+import matplotlib
+
+matplotlib.use("Agg")
 from scipy.stats import rankdata
 from smart_comp.analysis import run_descriptive_analysis
 from smart_comp.io import save_results, validate_and_clean
