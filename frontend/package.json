@@ -9,9 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --max-warnings=0",
     "test": "vitest",
-    "test:ui": "vitest run src/**/*.test.tsx",
-    "test:pact": "vitest run tests/pact/**/*.test.ts",
-    "test:e2e": "vitest run tests/e2e/**/*.test.tsx",
+    "test:ui": "vitest run --dir src",
+    "test:pact": "vitest run --dir tests/pact",
+    "test:e2e": "vitest run --dir tests/e2e",
     "pact:publish": "node scripts/publishPacts.mjs"
   },
   "dependencies": {
