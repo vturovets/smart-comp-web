@@ -1,6 +1,14 @@
 Set-StrictMode -Version Latest
-[CmdletBinding()]
-param()
+param(
+    [switch] $Verbose
+)
+
+# Enable or suppress verbose output explicitly for older PowerShell versions.
+if ($Verbose) {
+    $VerbosePreference = 'Continue'
+} else {
+    $VerbosePreference = 'SilentlyContinue'
+}
 
 # Quick launch helper for Smart Comp Web on Windows PowerShell.
 # It prepares environment files, ensures dependencies, starts Redis (via Docker),
@@ -94,9 +102,9 @@ function Start-Window {
         [Parameter(Mandatory)][string] $Command
     )
 
-    $shell = (Get-Command pwsh -ErrorAction SilentlyContinue)?.Source
+    $shell = (Get-Command pwsh -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
     if (-not $shell) {
-        $shell = (Get-Command powershell -ErrorAction SilentlyContinue)?.Source
+        $shell = (Get-Command powershell -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
     }
 
     if (-not $shell) {
