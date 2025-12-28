@@ -33,12 +33,7 @@ Monorepo for the Smart Comp web application. The repository contains a FastAPI b
    - API: http://localhost:8000 (FastAPI app)
    - Redis: localhost:6379 from your host; inside Compose services refer to it as `redis://redis:6379/*`
 
-## Backend development
-
-Create a virtual environment, install dependencies, and run the API:
-
-
-## Run the API locally (through Intellij IDEA PowerShell):
+## How to launch the application locally (through Intellij IDEA PowerShell)
 
 ### Terminal A — start Redis (Docker)
 
@@ -48,32 +43,31 @@ Create a virtual environment, install dependencies, and run the API:
 
 `docker exec -it smartcomp-redis redis-cli ping # PONG`
 
-### Terminal B — start Celery worker
+### Terminal B — configure the backend environment install dependencies and start Celery worker
 
+`cp backend/.env.example backend/.env`(keeps Redis URLs pointed at `redis://localhost:6379/*`).
+Sanity check:`Select-String -Path backend/.env -Pattern 'APP_REDIS_URL'`should show the localhost URI (`redis://localhost:6379/0`).
+
+From `backend/`(!):`python -m venv .venv`
 `cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
-
-`cd backend`
+`pip install path\to\smart_comp-0.1.0-py3-none-any.whl`
+`pip install -e .[dev]`
 
 `.\celery_worker.ps1`
+Sanity check: the worker log should show it has connected to Redis and is “ready” (look for the “ready” banner in the console).
 
 > If PowerShell blocks scripts, run once:
-
 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
-### Terminal C — start the API (Uvicorn)
+### Terminal C — start FastAPI server (Uvicorn)
 
-`cd C:\...\smart-comp-web .\.venv\Scripts\Activate.ps1`
+From `backend/`(same venv):`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`.
+Sanity check:`curl http://localhost:8000/api/health` should return `{"status":"ok"}` since `/health`is mounted under the`/api`prefix by default.
 
-`cd backend`
+### Terminal D — Install and run the Vite dev server
 
-`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
-
-### Terminal D — start the frontend
-
-`cd frontend`
-
-`npm run dev`
-
+From `frontend/`:`npm install` then `npm run dev -- --host --port 5173` (port aligns with the default CORS origin).
+Sanity check: open http://localhost:5173 in a browser; the network tab should show a successful GET to `/api/health` (200 OK). You can also `curl -I http://localhost:5173` to confirm the dev server is serving content.
 
 ## Backend tests and linting:
 
@@ -83,17 +77,7 @@ ruff check .
 ruff format .
 ```
 
-## Frontend development
-
-Install dependencies and start Vite:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend tests and linting:
+## Frontend tests and linting:
 
 ```bash
 npm test            # runs Vitest suite
