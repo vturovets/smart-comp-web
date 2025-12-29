@@ -1,5 +1,6 @@
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
@@ -223,109 +224,112 @@ export function JobForm({ defaults, onCreate, isCreating, error }: JobFormProps)
             </Grid>
           </Grid>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Stack spacing={2}>
-                <Typography variant="subtitle1">Uploads</Typography>
-                <Button component="label" variant="contained">
-                  Upload file 1 (required)
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: 2,
+              alignItems: "start"
+            }}
+          >
+            <Stack spacing={2}>
+              <Typography variant="subtitle1">Uploads</Typography>
+              <Button component="label" variant="contained" fullWidth>
+                Upload file 1 (required)
+                <input
+                  type="file"
+                  hidden
+                  onChange={(e) => setFile1(e.target.files?.[0] ?? null)}
+                  accept=".csv,.zip"
+                  data-testid="file1-input"
+                />
+              </Button>
+              {requiresSecondFile && (
+                <Button component="label" variant="outlined" fullWidth>
+                  Upload file 2
                   <input
                     type="file"
                     hidden
-                    onChange={(e) => setFile1(e.target.files?.[0] ?? null)}
+                    onChange={(e) => setFile2(e.target.files?.[0] ?? null)}
                     accept=".csv,.zip"
-                    data-testid="file1-input"
+                    data-testid="file2-input"
                   />
                 </Button>
-                {requiresSecondFile && (
-                  <Button component="label" variant="outlined">
-                    Upload file 2
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => setFile2(e.target.files?.[0] ?? null)}
-                      accept=".csv,.zip"
-                      data-testid="file2-input"
-                    />
-                  </Button>
-                )}
-                {(isKw || !requiresSecondFile) && (
-                  <Button component="label" variant="outlined">
-                    Upload file 3 (optional)
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => setFile3(e.target.files?.[0] ?? null)}
-                      accept=".csv,.zip"
-                      data-testid="file3-input"
-                    />
-                  </Button>
-                )}
-                {isKw && (
-                  <Alert severity="info" variant="outlined" data-testid="kw-helper">
-                    <Typography fontWeight={600}>KW ZIP guidance</Typography>
-                    <ul>
-                      <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
-                      <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
-                      <li>Do not mix root CSVs and group folders.</li>
-                    </ul>
-                  </Alert>
-                )}
-                {validationError && <Alert severity="warning">{validationError}</Alert>}
-                {error && <Alert severity="error">{error}</Alert>}
-              </Stack>
-            </Grid>
+              )}
+              {(isKw || !requiresSecondFile) && (
+                <Button component="label" variant="outlined" fullWidth>
+                  Upload file 3 (optional)
+                  <input
+                    type="file"
+                    hidden
+                    onChange={(e) => setFile3(e.target.files?.[0] ?? null)}
+                    accept=".csv,.zip"
+                    data-testid="file3-input"
+                  />
+                </Button>
+              )}
+              {isKw && (
+                <Alert severity="info" variant="outlined" data-testid="kw-helper">
+                  <Typography fontWeight={600}>KW ZIP guidance</Typography>
+                  <ul>
+                    <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
+                    <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
+                    <li>Do not mix root CSVs and group folders.</li>
+                  </ul>
+                </Alert>
+              )}
+              {validationError && <Alert severity="warning">{validationError}</Alert>}
+              {error && <Alert severity="error">{error}</Alert>}
+            </Stack>
 
-            <Grid item xs={12} md={6}>
-              <Stack spacing={2}>
-                <Typography variant="subtitle1">Config overrides</Typography>
-                <Grid container spacing={2}>
-                  {configGridColumns.map((item) => (
-                    <Grid item xs={12} sm={6} key={item.field}>
-                      <TextField
-                        label={item.label}
-                        type="number"
-                        fullWidth
-                        value={(config[item.field] as number | undefined | null) ?? ""}
-                        onChange={(e) => handleConfigChange(item.field, e.target.value)}
-                        disabled={item.disabled}
-                        inputProps={{ min: 0, step: 0.001 }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-                <FormGroup row>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={Boolean(config.plots?.histogram)}
-                        onChange={() => handlePlotToggle("histogram")}
-                      />
-                    }
-                    label="Histogram"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={Boolean(config.plots?.boxplot)}
-                        onChange={() => handlePlotToggle("boxplot")}
-                      />
-                    }
-                    label="Boxplot"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={Boolean(config.plots?.kde)}
-                        onChange={() => handlePlotToggle("kde")}
-                      />
-                    }
-                    label="KDE"
-                  />
-                </FormGroup>
-              </Stack>
-            </Grid>
-          </Grid>
+            <Stack spacing={2}>
+              <Typography variant="subtitle1">Config overrides</Typography>
+              <Grid container spacing={2}>
+                {configGridColumns.map((item) => (
+                  <Grid item xs={12} sm={6} key={item.field}>
+                    <TextField
+                      label={item.label}
+                      type="number"
+                      fullWidth
+                      value={(config[item.field] as number | undefined | null) ?? ""}
+                      onChange={(e) => handleConfigChange(item.field, e.target.value)}
+                      disabled={item.disabled}
+                      inputProps={{ min: 0, step: 0.001 }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+              <FormGroup row>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(config.plots?.histogram)}
+                      onChange={() => handlePlotToggle("histogram")}
+                    />
+                  }
+                  label="Histogram"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(config.plots?.boxplot)}
+                      onChange={() => handlePlotToggle("boxplot")}
+                    />
+                  }
+                  label="Boxplot"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(config.plots?.kde)}
+                      onChange={() => handlePlotToggle("kde")}
+                    />
+                  }
+                  label="KDE"
+                />
+              </FormGroup>
+            </Stack>
+          </Box>
 
           {isDescriptive && (
             <Alert severity="info" variant="outlined">
