@@ -1,4 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
+import { Typography } from "@mui/material";
 import Plot from "react-plotly.js";
 
 import { PlotRef } from "../api";
@@ -17,7 +18,9 @@ export function PlotGallery({ jobId, plots = [], loadPlot }: PlotGalleryProps) {
     }))
   });
 
-  if (!plots.length) return null;
+  if (!plots.length) {
+    return <Typography color="text.secondary">No plots yet. Complete a job to preview visuals.</Typography>;
+  }
 
   return (
     <div className="plot-grid">

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Alert, Container, Divider, Grid, Stack, Typography } from "@mui/material";
+import { Alert, Container, Grid, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 import { Artifact, JobStatus, buildApiClient } from "./api";
@@ -80,7 +80,7 @@ function App() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack spacing={3}>
+      <Stack spacing={4}>
         <header>
           <p className="eyebrow">Smart Comp</p>
           <Typography variant="h4" component="h1">
@@ -92,33 +92,39 @@ function App() {
           </Typography>
         </header>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={3} alignItems="flex-start">
           <Grid item xs={12} md={7}>
-            <JobForm
-              defaults={defaultsQuery.data}
-              isCreating={createJob.isPending}
-              onCreate={(payload) => createJob.mutate(payload)}
-              error={createJob.isError ? (createJob.error as Error).message : null}
-            />
+            <Stack spacing={2}>
+              <JobForm
+                defaults={defaultsQuery.data}
+                isCreating={createJob.isPending}
+                onCreate={(payload) => createJob.mutate(payload)}
+                error={createJob.isError ? (createJob.error as Error).message : null}
+              />
+
+              <Stack spacing={2}>
+                <StatusPanel
+                  job={jobStatus.data}
+                  onCancel={jobStatus.data ? () => cancelMutation.mutate() : undefined}
+                  isCancelling={cancelMutation.isPending}
+                />
+                {plotError && <Alert severity="warning">{plotError}</Alert>}
+              </Stack>
+            </Stack>
           </Grid>
           <Grid item xs={12} md={5}>
-            <StatusPanel
-              job={jobStatus.data}
-              onCancel={jobStatus.data ? () => cancelMutation.mutate() : undefined}
-              isCancelling={cancelMutation.isPending}
+            <ResultsPanel
+              jobId={jobId}
+              isLoading={resultsQuery.isPending}
+              isError={resultsQuery.isError}
+              errorMessage={resultsQuery.isError ? (resultsQuery.error as Error).message : null}
+              results={resultsQuery.data}
+              artifacts={artifactsQuery.data?.artifacts}
+              onDownloadArtifact={handleDownload}
+              loadPlot={loadPlot}
             />
-            {plotError && <Alert severity="warning" sx={{ mt: 2 }}>{plotError}</Alert>}
           </Grid>
         </Grid>
-
-        <Divider />
-
-        <ResultsPanel
-          results={resultsQuery.data}
-          artifacts={artifactsQuery.data?.artifacts}
-          onDownloadArtifact={handleDownload}
-          loadPlot={loadPlot}
-        />
       </Stack>
     </Container>
   );
