@@ -5,15 +5,16 @@ import { Artifact } from "../api";
 interface ArtifactsListProps {
   artifacts?: Artifact[];
   onDownload: (artifact: Artifact) => Promise<void>;
+  showTitle?: boolean;
 }
 
-export function ArtifactsList({ artifacts = [], onDownload }: ArtifactsListProps) {
+export function ArtifactsList({ artifacts = [], onDownload, showTitle = true }: ArtifactsListProps) {
   if (!artifacts.length) {
     return <Typography color="text.secondary">No artifacts yet. Downloads will appear after a job completes.</Typography>;
   }
   return (
     <Stack spacing={1}>
-      <Typography variant="h6">Artifacts</Typography>
+      {showTitle && <Typography variant="h6">Artifacts</Typography>}
       <List dense>
         {artifacts.map((artifact) => (
           <ListItem
