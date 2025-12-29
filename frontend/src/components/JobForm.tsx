@@ -167,7 +167,7 @@ export function JobForm({ defaults, onCreate, isCreating, error }: JobFormProps)
       component="form"
       onSubmit={handleSubmit}
       variant="outlined"
-      sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+      sx={{ width: "100%", minWidth: 0, height: "100%", display: "flex", flexDirection: "column" }}
     >
       <CardContent>
         <Stack spacing={3}>

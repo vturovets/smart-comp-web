@@ -95,12 +95,12 @@ function App() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(0, 1fr)" },
             gap: 3,
             alignItems: "stretch"
           }}
         >
-          <Stack spacing={2} sx={{ height: "100%" }}>
+          <Stack spacing={2} sx={{ height: "100%", minWidth: 0, width: "100%" }}>
             <JobForm
               defaults={defaultsQuery.data}
               isCreating={createJob.isPending}
@@ -117,7 +117,7 @@ function App() {
               {plotError && <Alert severity="warning">{plotError}</Alert>}
             </Stack>
           </Stack>
-          <Box sx={{ height: "100%" }}>
+          <Box sx={{ height: "100%", minWidth: 0, width: "100%" }}>
             <ResultsPanel
               jobId={jobId}
               isLoading={resultsQuery.isPending}
