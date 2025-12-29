@@ -1,5 +1,19 @@
+import { useEffect, useState, type ReactNode, type SyntheticEvent } from "react";
+
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Typography
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import {
   Artifact,
@@ -25,6 +39,15 @@ interface ResultsPanelProps {
   onDownloadArtifact: (artifact: Artifact) => Promise<void>;
   loadPlot: (artifactName: string) => Promise<{ data: any; layout?: any }>;
 }
+
+const initialExpandedState = {
+  metrics: true,
+  descriptive: false,
+  omnibus: false,
+  groupDetails: false,
+  descriptiveSummary: false,
+  artifacts: false
+} as const;
 
 const decisionColor = (significant?: boolean | null) => {
   if (significant === undefined || significant === null) return "default";
@@ -65,6 +88,24 @@ const toGroupRows = (groups: KwGroupResult[]) =>
 
 const getPlots = (results?: JobResults): PlotRef[] => results?.plots ?? [];
 
+interface ResultsAccordionSectionProps {
+  id: keyof typeof initialExpandedState;
+  title: string;
+  expanded: boolean;
+  onChange: (event: SyntheticEvent, expanded: boolean) => void;
+  children: ReactNode;
+  isEmpty?: boolean;
+}
+
+const ResultsAccordionSection = ({ id, title, expanded, onChange, children, isEmpty }: ResultsAccordionSectionProps) => (
+  <Accordion elevation={0} disableGutters expanded={expanded} onChange={onChange}>
+    <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls={`${id}-content`} id={`${id}-header`}>
+      <Typography variant="h6">{title}</Typography>
+    </AccordionSummary>
+    <AccordionDetails>{isEmpty ? <Typography color="text.secondary">No data</Typography> : children}</AccordionDetails>
+  </Accordion>
+);
+
 export function ResultsPanel({
   jobId,
   isLoading,
@@ -77,6 +118,18 @@ export function ResultsPanel({
 }: ResultsPanelProps) {
   const hasResults = Boolean(results);
   const plots = getPlots(results);
+  const [expandedSections, setExpandedSections] = useState<typeof initialExpandedState>(initialExpandedState);
+
+  useEffect(() => {
+    if (results) {
+      setExpandedSections(initialExpandedState);
+    }
+  }, [results?.jobId]);
+
+  const handleAccordionChange =
+    (section: keyof typeof initialExpandedState) => (_event: SyntheticEvent, isExpanded: boolean) =>
+      setExpandedSections((prev) => ({ ...prev, [section]: isExpanded }));
+
   const renderDecision = (decision: BootstrapSingleResults["decision"] | null | undefined) => {
     if (!decision) return null;
     return (
@@ -95,21 +148,37 @@ export function ResultsPanel({
     switch (results.jobType) {
       case JobType.BOOTSTRAP_SINGLE: {
         const data = results as BootstrapSingleResults;
+        const metricsRows = toKvRows(data.metrics);
+        const descriptiveRows = toKvRows(data.descriptive);
         return (
           <Stack spacing={2}>
             {renderDecision(data.decision)}
-            <Typography variant="h6">Metrics</Typography>
-            <Box
-              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            <ResultsAccordionSection
+              id="metrics"
+              title="Metrics"
+              expanded={expandedSections.metrics}
+              onChange={handleAccordionChange("metrics")}
+              isEmpty={!metricsRows.length}
             >
-              <DataGrid rows={toKvRows(data.metrics)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
-            <Typography variant="h6">Descriptive</Typography>
-            <Box
-              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              <Box
+                sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
+            <ResultsAccordionSection
+              id="descriptive"
+              title="Descriptive"
+              expanded={expandedSections.descriptive}
+              onChange={handleAccordionChange("descriptive")}
+              isEmpty={!descriptiveRows.length}
             >
-              <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
+              <Box
+                sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
             {data.interpretation && (
               <Alert severity="info">Interpretation: {JSON.stringify(data.interpretation)}</Alert>
             )}
@@ -118,55 +187,95 @@ export function ResultsPanel({
       }
       case JobType.BOOTSTRAP_DUAL: {
         const data = results as BootstrapDualResults;
+        const metricsRows = toKvRows(data.metrics);
+        const descriptiveRows = toKvRows(data.descriptive);
         return (
           <Stack spacing={2}>
             {renderDecision(data.decision)}
-            <Typography variant="h6">Metrics</Typography>
-            <Box
-              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            <ResultsAccordionSection
+              id="metrics"
+              title="Metrics"
+              expanded={expandedSections.metrics}
+              onChange={handleAccordionChange("metrics")}
+              isEmpty={!metricsRows.length}
             >
-              <DataGrid rows={toKvRows(data.metrics)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
-            <Typography variant="h6">Descriptive</Typography>
-            <Box
-              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              <Box
+                sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
+            <ResultsAccordionSection
+              id="descriptive"
+              title="Descriptive"
+              expanded={expandedSections.descriptive}
+              onChange={handleAccordionChange("descriptive")}
+              isEmpty={!descriptiveRows.length}
             >
-              <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
+              <Box
+                sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
           </Stack>
         );
       }
       case JobType.KW_PERMUTATION: {
         const data = results as KwPermutationResults;
+        const omnibusRows = toKvRows(data.omnibus);
+        const groupRows = toGroupRows(data.groups);
         return (
           <Stack spacing={2}>
             {renderDecision(data.decision)}
-            <Typography variant="h6">Omnibus</Typography>
-            <Box
-              sx={{ height: 220, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            <ResultsAccordionSection
+              id="omnibus"
+              title="Omnibus"
+              expanded={expandedSections.omnibus}
+              onChange={handleAccordionChange("omnibus")}
+              isEmpty={!omnibusRows.length}
             >
-              <DataGrid rows={toKvRows(data.omnibus)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
-            <Typography variant="h6">Group details</Typography>
-            <Box
-              sx={{ height: 320, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              <Box
+                sx={{ height: 220, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={omnibusRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
+            <ResultsAccordionSection
+              id="groupDetails"
+              title="Group details"
+              expanded={expandedSections.groupDetails}
+              onChange={handleAccordionChange("groupDetails")}
+              isEmpty={!groupRows.length}
             >
-              <DataGrid rows={toGroupRows(data.groups)} columns={groupsColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
+              <Box
+                sx={{ height: 320, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={groupRows} columns={groupsColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
           </Stack>
         );
       }
       case JobType.DESCRIPTIVE_ONLY: {
         const data = results as DescriptiveOnlyResults;
+        const descriptiveRows = toKvRows(data.descriptive);
         return (
           <Stack spacing={2}>
             <Alert severity="info">Descriptive-only job: decision block omitted by design.</Alert>
-            <Typography variant="h6">Descriptive summary</Typography>
-            <Box
-              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            <ResultsAccordionSection
+              id="descriptiveSummary"
+              title="Descriptive summary"
+              expanded={expandedSections.descriptiveSummary}
+              onChange={handleAccordionChange("descriptiveSummary")}
+              isEmpty={!descriptiveRows.length}
             >
-              <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </Box>
+              <Box
+                sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+              </Box>
+            </ResultsAccordionSection>
           </Stack>
         );
       }
@@ -219,7 +328,15 @@ export function ResultsPanel({
               >
                 <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
               </Box>
-              <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
+              <ResultsAccordionSection
+                id="artifacts"
+                title="Artifacts"
+                expanded={expandedSections.artifacts}
+                onChange={handleAccordionChange("artifacts")}
+                isEmpty={!artifacts?.length}
+              >
+                <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} showTitle={false} />
+              </ResultsAccordionSection>
             </>
           )}
         </Stack>
