@@ -1,5 +1,5 @@
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 
 import {
   Artifact,
@@ -187,19 +187,21 @@ export function ResultsPanel({
   };
 
   return (
-    <Box border={1} borderColor="divider" borderRadius={2} p={2} data-testid="results-panel">
-      <Stack spacing={3}>
-        <Typography variant="h6">Results</Typography>
-        {!hasResults ? (
-          renderEmptyState()
-        ) : (
-          <>
-            {renderBody()}
-            <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
-            <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
-          </>
-        )}
-      </Stack>
-    </Box>
+    <Card variant="outlined" data-testid="results-panel">
+      <CardContent>
+        <Stack spacing={3}>
+          <Typography variant="h6">Results</Typography>
+          {!hasResults ? (
+            renderEmptyState()
+          ) : (
+            <>
+              {renderBody()}
+              <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
+              <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
+            </>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
