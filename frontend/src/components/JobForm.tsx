@@ -163,7 +163,12 @@ export function JobForm({ defaults, onCreate, isCreating, error }: JobFormProps)
   }, [isDescriptive, isKw]);
 
   return (
-    <Card component="form" onSubmit={handleSubmit} variant="outlined">
+    <Card
+      component="form"
+      onSubmit={handleSubmit}
+      variant="outlined"
+      sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <CardContent>
         <Stack spacing={3}>
           <Stack spacing={1}>
