@@ -8,7 +8,9 @@ interface ArtifactsListProps {
 }
 
 export function ArtifactsList({ artifacts = [], onDownload }: ArtifactsListProps) {
-  if (!artifacts.length) return null;
+  if (!artifacts.length) {
+    return <Typography color="text.secondary">No artifacts yet. Downloads will appear after a job completes.</Typography>;
+  }
   return (
     <Stack spacing={1}>
       <Typography variant="h6">Artifacts</Typography>

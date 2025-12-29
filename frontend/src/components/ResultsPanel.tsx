@@ -16,6 +16,10 @@ import { ArtifactsList } from "./ArtifactsList";
 import { PlotGallery } from "./PlotGallery";
 
 interface ResultsPanelProps {
+  jobId?: string | null;
+  isLoading?: boolean;
+  isError?: boolean;
+  errorMessage?: string | null;
   results?: JobResults;
   artifacts?: Artifact[];
   onDownloadArtifact: (artifact: Artifact) => Promise<void>;
@@ -61,8 +65,17 @@ const toGroupRows = (groups: KwGroupResult[]) =>
 
 const getPlots = (results?: JobResults): PlotRef[] => results?.plots ?? [];
 
-export function ResultsPanel({ results, artifacts, onDownloadArtifact, loadPlot }: ResultsPanelProps) {
-  if (!results) return null;
+export function ResultsPanel({
+  jobId,
+  isLoading,
+  isError,
+  errorMessage,
+  results,
+  artifacts,
+  onDownloadArtifact,
+  loadPlot
+}: ResultsPanelProps) {
+  const hasResults = Boolean(results);
   const plots = getPlots(results);
   const renderDecision = (decision: BootstrapSingleResults["decision"] | null | undefined) => {
     if (!decision) return null;
@@ -148,13 +161,44 @@ export function ResultsPanel({ results, artifacts, onDownloadArtifact, loadPlot 
     }
   };
 
+  const renderEmptyState = () => {
+    if (isError) {
+      return (
+        <Alert severity="error">
+          {errorMessage || "Unable to load results. Ensure the backend is running and try again."}
+        </Alert>
+      );
+    }
+    if (!jobId) {
+      return (
+        <Typography color="text.secondary">
+          No jobs yet. Start an analysis to see results, plots, and downloadable artifacts here.
+        </Typography>
+      );
+    }
+    if (isLoading) {
+      return <Typography color="text.secondary">Waiting for job results…</Typography>;
+    }
+    return (
+      <Typography color="text.secondary">
+        Results will appear once the job finishes. If you recently started a job, keep this page open.
+      </Typography>
+    );
+  };
+
   return (
     <Box border={1} borderColor="divider" borderRadius={2} p={2} data-testid="results-panel">
       <Stack spacing={3}>
         <Typography variant="h6">Results</Typography>
-        {renderBody()}
-        <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
-        <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
+        {!hasResults ? (
+          renderEmptyState()
+        ) : (
+          <>
+            {renderBody()}
+            <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
+            <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
+          </>
+        )}
       </Stack>
     </Box>
   );
