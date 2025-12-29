@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Alert, Container, Grid, Stack, Typography } from "@mui/material";
+import { Alert, Box, Container, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 import { Artifact, JobStatus, buildApiClient } from "./api";
@@ -92,27 +92,32 @@ function App() {
           </Typography>
         </header>
 
-        <Grid container spacing={3} alignItems="stretch">
-          <Grid item xs={12} md={6}>
-            <Stack spacing={2} sx={{ height: "100%" }}>
-              <JobForm
-                defaults={defaultsQuery.data}
-                isCreating={createJob.isPending}
-                onCreate={(payload) => createJob.mutate(payload)}
-                error={createJob.isError ? (createJob.error as Error).message : null}
-              />
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+            gap: 3,
+            alignItems: "stretch"
+          }}
+        >
+          <Stack spacing={2} sx={{ height: "100%" }}>
+            <JobForm
+              defaults={defaultsQuery.data}
+              isCreating={createJob.isPending}
+              onCreate={(payload) => createJob.mutate(payload)}
+              error={createJob.isError ? (createJob.error as Error).message : null}
+            />
 
-              <Stack spacing={2}>
-                <StatusPanel
-                  job={jobStatus.data}
-                  onCancel={jobStatus.data ? () => cancelMutation.mutate() : undefined}
-                  isCancelling={cancelMutation.isPending}
-                />
-                {plotError && <Alert severity="warning">{plotError}</Alert>}
-              </Stack>
+            <Stack spacing={2}>
+              <StatusPanel
+                job={jobStatus.data}
+                onCancel={jobStatus.data ? () => cancelMutation.mutate() : undefined}
+                isCancelling={cancelMutation.isPending}
+              />
+              {plotError && <Alert severity="warning">{plotError}</Alert>}
             </Stack>
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </Stack>
+          <Box sx={{ height: "100%" }}>
             <ResultsPanel
               jobId={jobId}
               isLoading={resultsQuery.isPending}
@@ -123,8 +128,8 @@ function App() {
               onDownloadArtifact={handleDownload}
               loadPlot={loadPlot}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Stack>
     </Container>
   );
