@@ -1,7 +1,8 @@
 import {
   Alert,
-  Box,
   Button,
+  Card,
+  CardContent,
   FormControl,
   FormControlLabel,
   FormGroup,
@@ -161,183 +162,185 @@ export function JobForm({ defaults, onCreate, isCreating, error }: JobFormProps)
   }, [isDescriptive, isKw]);
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
-      <Stack spacing={3}>
-        <Stack spacing={1}>
-          <Typography variant="h5">Create analysis job</Typography>
-          <Typography color="text.secondary">
-            Upload your datasets, edit configuration, and launch a Smart-Comp job. Status polling and
-            cancellations will appear automatically.
-          </Typography>
-        </Stack>
+    <Card component="form" onSubmit={handleSubmit} variant="outlined">
+      <CardContent>
+        <Stack spacing={3}>
+          <Stack spacing={1}>
+            <Typography variant="h5">Create analysis job</Typography>
+            <Typography color="text.secondary">
+              Upload your datasets, edit configuration, and launch a Smart-Comp job. Status polling and
+              cancellations will appear automatically.
+            </Typography>
+          </Stack>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel id="job-type-label">Job type</InputLabel>
-              <Select
-                labelId="job-type-label"
-                value={jobType}
-                label="Job type"
-                onChange={(event) => setJobType(event.target.value as JobType)}
-              >
-                <MenuItem value={JobType.BOOTSTRAP_SINGLE}>Bootstrap single</MenuItem>
-                <MenuItem value={JobType.BOOTSTRAP_DUAL}>Bootstrap dual</MenuItem>
-                <MenuItem value={JobType.KW_PERMUTATION}>KW permutation</MenuItem>
-                <MenuItem value={JobType.DESCRIPTIVE_ONLY}>Descriptive only</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormGroup row>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={Boolean(config.descriptiveEnabled)}
-                    onChange={(event) => handleConfigChange("descriptiveEnabled", event.target.checked)}
-                  />
-                }
-                label="Descriptive statistics"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={Boolean(config.createLog)}
-                    onChange={(event) => handleConfigChange("createLog", event.target.checked)}
-                  />
-                }
-                label="Include log artifact"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={Boolean(config.cleanAll)}
-                    onChange={(event) => handleConfigChange("cleanAll", event.target.checked)}
-                  />
-                }
-                label="Clean all data"
-              />
-            </FormGroup>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Uploads</Typography>
-              <Button component="label" variant="contained">
-                Upload file 1 (required)
-                <input
-                  type="file"
-                  hidden
-                  onChange={(e) => setFile1(e.target.files?.[0] ?? null)}
-                  accept=".csv,.zip"
-                  data-testid="file1-input"
-                />
-              </Button>
-              {requiresSecondFile && (
-                <Button component="label" variant="outlined">
-                  Upload file 2
-                  <input
-                    type="file"
-                    hidden
-                    onChange={(e) => setFile2(e.target.files?.[0] ?? null)}
-                    accept=".csv,.zip"
-                    data-testid="file2-input"
-                  />
-                </Button>
-              )}
-              {(isKw || !requiresSecondFile) && (
-                <Button component="label" variant="outlined">
-                  Upload file 3 (optional)
-                  <input
-                    type="file"
-                    hidden
-                    onChange={(e) => setFile3(e.target.files?.[0] ?? null)}
-                    accept=".csv,.zip"
-                    data-testid="file3-input"
-                  />
-                </Button>
-              )}
-              {isKw && (
-                <Alert severity="info" variant="outlined" data-testid="kw-helper">
-                  <Typography fontWeight={600}>KW ZIP guidance</Typography>
-                  <ul>
-                    <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
-                    <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
-                    <li>Do not mix root CSVs and group folders.</li>
-                  </ul>
-                </Alert>
-              )}
-              {validationError && <Alert severity="warning">{validationError}</Alert>}
-              {error && <Alert severity="error">{error}</Alert>}
-            </Stack>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Config overrides</Typography>
-              <Grid container spacing={2}>
-                {configGridColumns.map((item) => (
-                  <Grid item xs={12} sm={6} key={item.field}>
-                    <TextField
-                      label={item.label}
-                      type="number"
-                      fullWidth
-                      value={(config[item.field] as number | undefined | null) ?? ""}
-                      onChange={(e) => handleConfigChange(item.field, e.target.value)}
-                      disabled={item.disabled}
-                      inputProps={{ min: 0, step: 0.001 }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel id="job-type-label">Job type</InputLabel>
+                <Select
+                  labelId="job-type-label"
+                  value={jobType}
+                  label="Job type"
+                  onChange={(event) => setJobType(event.target.value as JobType)}
+                >
+                  <MenuItem value={JobType.BOOTSTRAP_SINGLE}>Bootstrap single</MenuItem>
+                  <MenuItem value={JobType.BOOTSTRAP_DUAL}>Bootstrap dual</MenuItem>
+                  <MenuItem value={JobType.KW_PERMUTATION}>KW permutation</MenuItem>
+                  <MenuItem value={JobType.DESCRIPTIVE_ONLY}>Descriptive only</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <FormGroup row>
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={Boolean(config.plots?.histogram)}
-                      onChange={() => handlePlotToggle("histogram")}
+                      checked={Boolean(config.descriptiveEnabled)}
+                      onChange={(event) => handleConfigChange("descriptiveEnabled", event.target.checked)}
                     />
                   }
-                  label="Histogram"
+                  label="Descriptive statistics"
                 />
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={Boolean(config.plots?.boxplot)}
-                      onChange={() => handlePlotToggle("boxplot")}
+                      checked={Boolean(config.createLog)}
+                      onChange={(event) => handleConfigChange("createLog", event.target.checked)}
                     />
                   }
-                  label="Boxplot"
+                  label="Include log artifact"
                 />
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={Boolean(config.plots?.kde)}
-                      onChange={() => handlePlotToggle("kde")}
+                      checked={Boolean(config.cleanAll)}
+                      onChange={(event) => handleConfigChange("cleanAll", event.target.checked)}
                     />
                   }
-                  label="KDE"
+                  label="Clean all data"
                 />
               </FormGroup>
-            </Stack>
+            </Grid>
           </Grid>
-        </Grid>
 
-        {isDescriptive && (
-          <Alert severity="info" variant="outlined">
-            Descriptive only mode hides significance fields and requires only file 1. Cleaning and plot
-            toggles remain available.
-          </Alert>
-        )}
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Stack spacing={2}>
+                <Typography variant="subtitle1">Uploads</Typography>
+                <Button component="label" variant="contained">
+                  Upload file 1 (required)
+                  <input
+                    type="file"
+                    hidden
+                    onChange={(e) => setFile1(e.target.files?.[0] ?? null)}
+                    accept=".csv,.zip"
+                    data-testid="file1-input"
+                  />
+                </Button>
+                {requiresSecondFile && (
+                  <Button component="label" variant="outlined">
+                    Upload file 2
+                    <input
+                      type="file"
+                      hidden
+                      onChange={(e) => setFile2(e.target.files?.[0] ?? null)}
+                      accept=".csv,.zip"
+                      data-testid="file2-input"
+                    />
+                  </Button>
+                )}
+                {(isKw || !requiresSecondFile) && (
+                  <Button component="label" variant="outlined">
+                    Upload file 3 (optional)
+                    <input
+                      type="file"
+                      hidden
+                      onChange={(e) => setFile3(e.target.files?.[0] ?? null)}
+                      accept=".csv,.zip"
+                      data-testid="file3-input"
+                    />
+                  </Button>
+                )}
+                {isKw && (
+                  <Alert severity="info" variant="outlined" data-testid="kw-helper">
+                    <Typography fontWeight={600}>KW ZIP guidance</Typography>
+                    <ul>
+                      <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
+                      <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
+                      <li>Do not mix root CSVs and group folders.</li>
+                    </ul>
+                  </Alert>
+                )}
+                {validationError && <Alert severity="warning">{validationError}</Alert>}
+                {error && <Alert severity="error">{error}</Alert>}
+              </Stack>
+            </Grid>
 
-        <Stack direction="row" justifyContent="flex-end">
-          <Button variant="contained" color="primary" type="submit" disabled={isCreating}>
-            {isCreating ? "Submitting..." : "Start job"}
-          </Button>
+            <Grid item xs={12} md={6}>
+              <Stack spacing={2}>
+                <Typography variant="subtitle1">Config overrides</Typography>
+                <Grid container spacing={2}>
+                  {configGridColumns.map((item) => (
+                    <Grid item xs={12} sm={6} key={item.field}>
+                      <TextField
+                        label={item.label}
+                        type="number"
+                        fullWidth
+                        value={(config[item.field] as number | undefined | null) ?? ""}
+                        onChange={(e) => handleConfigChange(item.field, e.target.value)}
+                        disabled={item.disabled}
+                        inputProps={{ min: 0, step: 0.001 }}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+                <FormGroup row>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={Boolean(config.plots?.histogram)}
+                        onChange={() => handlePlotToggle("histogram")}
+                      />
+                    }
+                    label="Histogram"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={Boolean(config.plots?.boxplot)}
+                        onChange={() => handlePlotToggle("boxplot")}
+                      />
+                    }
+                    label="Boxplot"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={Boolean(config.plots?.kde)}
+                        onChange={() => handlePlotToggle("kde")}
+                      />
+                    }
+                    label="KDE"
+                  />
+                </FormGroup>
+              </Stack>
+            </Grid>
+          </Grid>
+
+          {isDescriptive && (
+            <Alert severity="info" variant="outlined">
+              Descriptive only mode hides significance fields and requires only file 1. Cleaning and plot
+              toggles remain available.
+            </Alert>
+          )}
+
+          <Stack direction="row" justifyContent="flex-end">
+            <Button variant="contained" color="primary" type="submit" disabled={isCreating}>
+              {isCreating ? "Submitting..." : "Start job"}
+            </Button>
+          </Stack>
         </Stack>
-      </Stack>
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
