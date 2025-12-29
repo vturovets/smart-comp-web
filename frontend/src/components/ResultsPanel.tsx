@@ -1,5 +1,5 @@
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Alert, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 
 import {
   Artifact,
@@ -99,13 +99,17 @@ export function ResultsPanel({
           <Stack spacing={2}>
             {renderDecision(data.decision)}
             <Typography variant="h6">Metrics</Typography>
-            <div style={{ height: 260 }}>
+            <Box
+              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.metrics)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
             <Typography variant="h6">Descriptive</Typography>
-            <div style={{ height: 260 }}>
+            <Box
+              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
             {data.interpretation && (
               <Alert severity="info">Interpretation: {JSON.stringify(data.interpretation)}</Alert>
             )}
@@ -118,13 +122,17 @@ export function ResultsPanel({
           <Stack spacing={2}>
             {renderDecision(data.decision)}
             <Typography variant="h6">Metrics</Typography>
-            <div style={{ height: 260 }}>
+            <Box
+              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.metrics)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
             <Typography variant="h6">Descriptive</Typography>
-            <div style={{ height: 260 }}>
+            <Box
+              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
           </Stack>
         );
       }
@@ -134,13 +142,17 @@ export function ResultsPanel({
           <Stack spacing={2}>
             {renderDecision(data.decision)}
             <Typography variant="h6">Omnibus</Typography>
-            <div style={{ height: 220 }}>
+            <Box
+              sx={{ height: 220, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.omnibus)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
             <Typography variant="h6">Group details</Typography>
-            <div style={{ height: 320 }}>
+            <Box
+              sx={{ height: 320, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toGroupRows(data.groups)} columns={groupsColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
           </Stack>
         );
       }
@@ -150,9 +162,11 @@ export function ResultsPanel({
           <Stack spacing={2}>
             <Alert severity="info">Descriptive-only job: decision block omitted by design.</Alert>
             <Typography variant="h6">Descriptive summary</Typography>
-            <div style={{ height: 260 }}>
+            <Box
+              sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+            >
               <DataGrid rows={toKvRows(data.descriptive)} columns={kvColumns} disableRowSelectionOnClick hideFooter />
-            </div>
+            </Box>
           </Stack>
         );
       }
@@ -190,7 +204,7 @@ export function ResultsPanel({
     <Card
       variant="outlined"
       data-testid="results-panel"
-      sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+      sx={{ width: "100%", minWidth: 0, height: "100%", display: "flex", flexDirection: "column" }}
     >
       <CardContent>
         <Stack spacing={3}>
@@ -200,7 +214,11 @@ export function ResultsPanel({
           ) : (
             <>
               {renderBody()}
-              <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
+              <Box
+                sx={{ minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+              >
+                <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
+              </Box>
               <ArtifactsList artifacts={artifacts} onDownload={onDownloadArtifact} />
             </>
           )}
