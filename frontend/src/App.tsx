@@ -92,9 +92,9 @@ function App() {
           </Typography>
         </header>
 
-        <Grid container spacing={3} alignItems="flex-start">
-          <Grid item xs={12} md={7}>
-            <Stack spacing={2}>
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid item xs={12} md={6}>
+            <Stack spacing={2} sx={{ height: "100%" }}>
               <JobForm
                 defaults={defaultsQuery.data}
                 isCreating={createJob.isPending}
@@ -112,7 +112,7 @@ function App() {
               </Stack>
             </Stack>
           </Grid>
-          <Grid item xs={12} md={5}>
+          <Grid item xs={12} md={6}>
             <ResultsPanel
               jobId={jobId}
               isLoading={resultsQuery.isPending}

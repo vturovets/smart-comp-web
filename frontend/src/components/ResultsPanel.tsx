@@ -187,7 +187,11 @@ export function ResultsPanel({
   };
 
   return (
-    <Card variant="outlined" data-testid="results-panel">
+    <Card
+      variant="outlined"
+      data-testid="results-panel"
+      sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <CardContent>
         <Stack spacing={3}>
           <Typography variant="h6">Results</Typography>
