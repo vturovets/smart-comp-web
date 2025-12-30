@@ -23,6 +23,18 @@ import { ConfigDefaults, ConfigOverrides, CreateJobPayload, JobType } from "../a
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const allowedTypes = new Set(["text/csv", "application/zip", "application/x-zip-compressed"]);
+const CONTROL_HEIGHT = 56;
+const STATUS_LINE_MIN_HEIGHT = 28;
+
+const textFieldSx = {
+  "& .MuiInputBase-root": {
+    height: CONTROL_HEIGHT
+  },
+  "& .MuiInputBase-input": {
+    padding: "0 14px",
+    boxSizing: "border-box"
+  }
+};
 
 interface JobFormProps {
   defaults?: ConfigDefaults;
@@ -55,6 +67,60 @@ const numericFields: Array<keyof ConfigOverrides> = [
   "outlierLowerBound",
   "outlierUpperBound"
 ];
+
+const renderStatusLine = (state: UploadState) => {
+  let label: string | null = null;
+  if (state.status === "uploading") label = "Uploading...";
+  if (state.status === "uploaded") label = "Uploaded";
+  if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
+
+  const color =
+    state.status === "failed"
+      ? "error.main"
+      : state.status === "uploaded"
+        ? "success.main"
+        : "text.secondary";
+
+  return (
+    <Box sx={{ minHeight: STATUS_LINE_MIN_HEIGHT, display: "flex", alignItems: "center" }}>
+      {state.file ? (
+        <Typography
+          variant="body2"
+          color={color}
+          sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+          title={state.file.name}
+        >
+          {state.file.name}
+          {label ? ` — ${label}` : ""}
+        </Typography>
+      ) : null}
+    </Box>
+  );
+};
+
+interface UploadControlProps {
+  label: string;
+  uploadState: UploadState;
+  onChange: (file: File | null) => void;
+  testId: string;
+  variant?: "contained" | "outlined";
+}
+
+const UploadControl = ({ label, uploadState, onChange, testId, variant = "contained" }: UploadControlProps) => (
+  <Stack spacing={0.5} sx={{ alignItems: "stretch" }}>
+    <Button component="label" variant={variant} fullWidth sx={{ height: CONTROL_HEIGHT }}>
+      {label}
+      <input
+        type="file"
+        hidden
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        accept=".csv,.zip"
+        data-testid={testId}
+      />
+    </Button>
+    {renderStatusLine(uploadState)}
+  </Stack>
+);
 
 export function JobForm({ defaults, onCreate, isCreating, error, createStatus }: JobFormProps) {
   const [jobType, setJobType] = useState<JobType>(JobType.BOOTSTRAP_SINGLE);
@@ -161,29 +227,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
     }
   }, [createStatus, error]);
 
-  const renderStatusLine = (state: UploadState) => {
-    if (!state.file) return null;
-
-    let label: string | null = null;
-    if (state.status === "uploading") label = "Uploading...";
-    if (state.status === "uploaded") label = "Uploaded";
-    if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
-
-    const color =
-      state.status === "failed"
-        ? "error.main"
-        : state.status === "uploaded"
-          ? "success.main"
-          : "text.secondary";
-
-    return (
-      <Typography variant="body2" color={color} sx={{ wordBreak: "break-word" }}>
-        {state.file.name}
-        {label ? ` — ${label}` : ""}
-      </Typography>
-    );
-  };
-
   const configGridColumns = useMemo(() => {
     const items = [
       {
@@ -214,6 +257,35 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
     ];
     return items.filter((item) => !item.disabled || item.field === "alpha");
   }, [isDescriptive, isKw]);
+
+  const renderConfigField = (field: keyof ConfigOverrides, gridProps?: { xs?: number; sm?: number }) => {
+    const item = configGridColumns.find((entry) => entry.field === field);
+    if (!item) return null;
+
+    return (
+      <Grid item xs={gridProps?.xs ?? 12} sm={gridProps?.sm ?? 6} key={item.field}>
+        <TextField
+          label={item.label}
+          type="number"
+          fullWidth
+          value={(config[item.field] as number | undefined | null) ?? ""}
+          onChange={(e) => handleConfigChange(item.field, e.target.value)}
+          disabled={item.disabled}
+          inputProps={{ min: 0, step: 0.001 }}
+          sx={textFieldSx}
+        />
+      </Grid>
+    );
+  };
+
+  const consumedConfigFields: Array<keyof ConfigOverrides> = [
+    "alpha",
+    "threshold",
+    "bootstrapIterations",
+    "sampleSize"
+  ];
+
+  const remainingConfigFields = configGridColumns.filter((item) => !consumedConfigFields.includes(item.field));
 
   return (
     <Card
@@ -282,97 +354,70 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
             </Grid>
           </Grid>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 2,
-              alignItems: "start"
-            }}
-          >
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Uploads</Typography>
-              <Stack spacing={0.5}>
-                <Button component="label" variant="contained" fullWidth>
-                  Upload file 1 (required)
-                  <input
-                    type="file"
-                    hidden
-                    onChange={(e) => {
-                      const selected = e.target.files?.[0] ?? null;
-                      setFile1({
-                        file: selected,
+          <Stack spacing={2}>
+            <Grid container spacing={2} alignItems="flex-end">
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Uploads</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" sx={{ marginLeft: { xs: 0, md: 0 } }}>
+                  Config overrides
+                </Typography>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2} alignItems="stretch">
+              <Grid item xs={12} md={6}>
+                <UploadControl
+                  label="Upload file 1 (required)"
+                  uploadState={file1}
+                  onChange={(file) =>
+                    setFile1({
+                      file,
+                      status: "idle",
+                      error: null
+                    })
+                  }
+                  testId="file1-input"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Grid container spacing={2} alignItems="stretch">
+                  {renderConfigField("alpha", { xs: 12, sm: 6 })}
+                  {renderConfigField("threshold", { xs: 12, sm: 6 })}
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2} alignItems="stretch">
+              {(isKw || !requiresSecondFile) && (
+                <Grid item xs={12} md={6}>
+                  <UploadControl
+                    label="Upload file 3 (optional)"
+                    uploadState={file3}
+                    onChange={(file) =>
+                      setFile3({
+                        file,
                         status: "idle",
                         error: null
-                      });
-                    }}
-                    accept=".csv,.zip"
-                    data-testid="file1-input"
+                      })
+                    }
+                    testId="file3-input"
+                    variant="outlined"
                   />
-                </Button>
-                {renderStatusLine(file1)}
-              </Stack>
-              {requiresSecondFile && (
-                <Stack spacing={0.5}>
-                  <Button component="label" variant="outlined" fullWidth>
-                    Upload file 2
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] ?? null;
-                        setFile2({
-                          file: selected,
-                          status: "idle",
-                          error: null
-                        });
-                      }}
-                      accept=".csv,.zip"
-                      data-testid="file2-input"
-                    />
-                  </Button>
-                </Stack>
+                </Grid>
               )}
-              {(isKw || !requiresSecondFile) && (
-                <Stack spacing={0.5}>
-                  <Button component="label" variant="outlined" fullWidth>
-                    Upload file 3 (optional)
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] ?? null;
-                        setFile3({
-                          file: selected,
-                          status: "idle",
-                          error: null
-                        });
-                      }}
-                      accept=".csv,.zip"
-                      data-testid="file3-input"
-                    />
-                  </Button>
-                  {renderStatusLine(file3)}
-                </Stack>
-              )}
-              {isKw && (
-                <Alert severity="info" variant="outlined" data-testid="kw-helper">
-                  <Typography fontWeight={600}>KW ZIP guidance</Typography>
-                  <ul>
-                    <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
-                    <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
-                    <li>Do not mix root CSVs and group folders.</li>
-                  </ul>
-                </Alert>
-              )}
-              {validationError && <Alert severity="warning">{validationError}</Alert>}
-              {error && <Alert severity="error">{error}</Alert>}
-            </Stack>
+              <Grid item xs={12} md={6}>
+                <Grid container spacing={2} alignItems="stretch">
+                  {renderConfigField("bootstrapIterations", { xs: 12, sm: 6 })}
+                  {renderConfigField("sampleSize", { xs: 12, sm: 6 })}
+                </Grid>
+              </Grid>
+            </Grid>
 
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Config overrides</Typography>
-              <Grid container spacing={2}>
-                {configGridColumns.map((item) => (
+            {remainingConfigFields.length > 0 && (
+              <Grid container spacing={2} alignItems="stretch">
+                {remainingConfigFields.map((item) => (
                   <Grid item xs={12} sm={6} key={item.field}>
                     <TextField
                       label={item.label}
@@ -382,41 +427,72 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                       onChange={(e) => handleConfigChange(item.field, e.target.value)}
                       disabled={item.disabled}
                       inputProps={{ min: 0, step: 0.001 }}
+                      sx={textFieldSx}
                     />
                   </Grid>
                 ))}
               </Grid>
-              <FormGroup row>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={Boolean(config.plots?.histogram)}
-                      onChange={() => handlePlotToggle("histogram")}
-                    />
-                  }
-                  label="Histogram"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={Boolean(config.plots?.boxplot)}
-                      onChange={() => handlePlotToggle("boxplot")}
-                    />
-                  }
-                  label="Boxplot"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={Boolean(config.plots?.kde)}
-                      onChange={() => handlePlotToggle("kde")}
-                    />
-                  }
-                  label="KDE"
-                />
-              </FormGroup>
-            </Stack>
-          </Box>
+            )}
+
+            {requiresSecondFile && (
+              <UploadControl
+                label="Upload file 2"
+                uploadState={file2}
+                onChange={(file) =>
+                  setFile2({
+                    file,
+                    status: "idle",
+                    error: null
+                  })
+                }
+                testId="file2-input"
+                variant="outlined"
+              />
+            )}
+
+            <FormGroup row>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(config.plots?.histogram)}
+                    onChange={() => handlePlotToggle("histogram")}
+                  />
+                }
+                label="Histogram"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(config.plots?.boxplot)}
+                    onChange={() => handlePlotToggle("boxplot")}
+                  />
+                }
+                label="Boxplot"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(config.plots?.kde)}
+                    onChange={() => handlePlotToggle("kde")}
+                  />
+                }
+                label="KDE"
+              />
+            </FormGroup>
+
+            {isKw && (
+              <Alert severity="info" variant="outlined" data-testid="kw-helper">
+                <Typography fontWeight={600}>KW ZIP guidance</Typography>
+                <ul>
+                  <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
+                  <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
+                  <li>Do not mix root CSVs and group folders.</li>
+                </ul>
+              </Alert>
+            )}
+            {validationError && <Alert severity="warning">{validationError}</Alert>}
+            {error && <Alert severity="error">{error}</Alert>}
+          </Stack>
 
           {isDescriptive && (
             <Alert severity="info" variant="outlined">
