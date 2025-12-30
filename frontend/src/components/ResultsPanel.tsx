@@ -7,6 +7,7 @@ import {
   AccordionSummary,
   Alert,
   Box,
+  CircularProgress,
   Card,
   CardContent,
   Chip,
@@ -49,6 +50,7 @@ const initialExpandedState = {
   groupDetails: false,
   descriptiveSummary: false,
   interpretation: false,
+  plots: false,
   artifacts: false
 } as const;
 
@@ -131,6 +133,58 @@ const normalizeInterpretationText = (interpretation?: InterpretationContent | nu
   }
 
   return null;
+};
+
+interface PlotsAccordionProps {
+  jobId?: string | null;
+  plots: PlotRef[];
+  hasResults: boolean;
+  expanded: boolean;
+  isLoading?: boolean;
+  onChange: (event: SyntheticEvent, expanded: boolean) => void;
+  loadPlot: (artifactName: string) => Promise<{ data: any; layout?: any }>;
+}
+
+const PlotsAccordion = ({ jobId, plots, hasResults, expanded, isLoading, onChange, loadPlot }: PlotsAccordionProps) => {
+  const hasPlots = plots.length > 0;
+
+  const content = (() => {
+    if (!jobId) {
+      return <Typography color="text.secondary">No plots yet. Complete a job to preview visuals.</Typography>;
+    }
+
+    if (isLoading || !hasResults) {
+      return (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <CircularProgress size={16} />
+          <Typography color="text.secondary">Generating plots…</Typography>
+        </Stack>
+      );
+    }
+
+    if (!hasPlots) {
+      return <Typography color="text.secondary">No plots yet. Complete a job to preview visuals.</Typography>;
+    }
+
+    return (
+      <Box
+        sx={{ minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
+      >
+        <PlotGallery jobId={jobId} plots={plots} loadPlot={loadPlot} />
+      </Box>
+    );
+  })();
+
+  return (
+    <ResultsAccordionSection
+      id="plots"
+      title="Plots"
+      expanded={expanded}
+      onChange={onChange}
+    >
+      {content}
+    </ResultsAccordionSection>
+  );
 };
 
 interface InterpretationSectionProps {
@@ -395,11 +449,15 @@ export function ResultsPanel({
           ) : (
             <>
               {renderBody()}
-              <Box
-                sx={{ minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
-              >
-                <PlotGallery jobId={results.jobId} plots={plots} loadPlot={loadPlot} />
-              </Box>
+              <PlotsAccordion
+                jobId={jobId}
+                plots={plots}
+                hasResults={hasResults}
+                expanded={expandedSections.plots}
+                isLoading={isLoading}
+                onChange={handleAccordionChange("plots")}
+                loadPlot={loadPlot}
+              />
               <ResultsAccordionSection
                 id="artifacts"
                 title="Artifacts"

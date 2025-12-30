@@ -81,3 +81,30 @@ describe("ResultsPanel interpretation section", () => {
     expect(within(panel).getByText(/bullet point/i)).toBeInTheDocument();
   });
 });
+
+describe("ResultsPanel plots accordion", () => {
+  const baseResults: BootstrapSingleResults = {
+    jobId: "job-456",
+    jobType: JobType.BOOTSTRAP_SINGLE,
+    decision: { alpha: 0.05, pValue: 0.05, significant: false },
+    metrics: {},
+    descriptive: {},
+    plots: []
+  };
+
+  it("renders plots accordion collapsed by default", () => {
+    render(<ResultsPanel {...baseProps} results={baseResults} />, { wrapper });
+
+    const accordion = screen.getByRole("button", { name: /plots/i });
+
+    expect(accordion).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows placeholder when no plots are available", async () => {
+    render(<ResultsPanel {...baseProps} results={baseResults} />, { wrapper });
+
+    await userEvent.click(screen.getByRole("button", { name: /plots/i }));
+
+    expect(await screen.findByText(/No plots yet. Complete a job to preview visuals./i)).toBeVisible();
+  });
+});
