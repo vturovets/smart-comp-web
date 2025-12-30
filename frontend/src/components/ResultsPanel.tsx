@@ -32,7 +32,6 @@ import {
 } from "../api";
 import { ArtifactsList } from "./ArtifactsList";
 import { PlotGallery } from "./PlotGallery";
-import { formatNumber1dp, humanizeMetric } from "../utils/format";
 
 interface ResultsPanelProps {
   jobId?: string | null;
@@ -61,70 +60,24 @@ const decisionColor = (significant?: boolean | null) => {
   return significant ? "success" : "default";
 };
 
-const formatValueForDisplay = (value: unknown) => {
-  if (value === null || value === undefined) return "—";
-
-  const numericValue =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value.trim() !== ""
-        ? Number(value)
-        : Number.NaN;
-
-  if (Number.isFinite(numericValue)) {
-    return formatNumber1dp(numericValue);
-  }
-
-  if (typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return "—";
-    }
-  }
-
-  return String(value);
-};
-
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
-  {
-    field: "value",
-    headerName: "Value",
-    flex: 1,
-    valueFormatter: ({ value }) => formatValueForDisplay(value)
-  }
+  { field: "value", headerName: "Value", flex: 1 }
 ];
 
 const groupsColumns: GridColDef[] = [
   { field: "group", headerName: "Group", flex: 1 },
   { field: "file", headerName: "File", flex: 1 },
-  {
-    field: "n",
-    headerName: humanizeMetric("n"),
-    width: 120,
-    type: "number",
-    valueFormatter: ({ value }) => formatValueForDisplay(value)
-  },
-  {
-    field: "median",
-    headerName: humanizeMetric("median"),
-    width: 160,
-    valueFormatter: ({ value }) => formatValueForDisplay(value)
-  },
-  {
-    field: "p95",
-    headerName: humanizeMetric("p95"),
-    width: 160,
-    valueFormatter: ({ value }) => formatValueForDisplay(value)
-  }
+  { field: "n", headerName: "n", width: 80, type: "number" },
+  { field: "median", headerName: "Median", width: 120 },
+  { field: "p95", headerName: "p95", width: 120 }
 ];
 
 const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
-    metric: humanizeMetric(metric),
-    value
+    metric,
+    value: typeof value === "object" ? JSON.stringify(value) : String(value)
   }));
 
 const toGroupRows = (groups: KwGroupResult[]) =>
@@ -140,7 +93,6 @@ const toGroupRows = (groups: KwGroupResult[]) =>
   );
 
 const getPlots = (results?: JobResults): PlotRef[] => results?.plots ?? [];
-const dataGridSx = { "& .MuiDataGrid-columnHeaderTitle": { fontWeight: "bold" } };
 
 interface ResultsAccordionSectionProps {
   id: keyof typeof initialExpandedState;
@@ -326,7 +278,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -339,7 +291,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -367,7 +319,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -380,7 +332,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -408,7 +360,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 220, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={omnibusRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={omnibusRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -421,7 +373,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 320, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={groupRows} columns={groupsColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={groupRows} columns={groupsColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
           </Stack>
@@ -443,7 +395,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter sx={dataGridSx} />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
