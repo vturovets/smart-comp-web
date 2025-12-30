@@ -25,6 +25,7 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const allowedTypes = new Set(["text/csv", "application/zip", "application/x-zip-compressed"]);
 const CONTROL_HEIGHT = 56;
 const STATUS_LINE_HEIGHT = 28;
+const CONFIG_SPACING = 2;
 const configFieldSx = {
   "& .MuiInputBase-root": {
     height: CONTROL_HEIGHT,
@@ -395,9 +396,11 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Grid container spacing={2} alignItems="stretch">
+                <Grid container spacing={CONFIG_SPACING} alignItems="stretch">
                   {renderConfigInput("alpha")}
                   {renderConfigInput("threshold")}
+                  {renderConfigInput("bootstrapIterations")}
+                  {renderConfigInput("sampleSize")}
                 </Grid>
               </Grid>
 
@@ -428,17 +431,14 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                 ) : null}
               </Grid>
               <Grid item xs={12} md={6}>
-                <Grid container spacing={2} alignItems="stretch">
-                  {renderConfigInput("bootstrapIterations")}
-                  {renderConfigInput("sampleSize")}
-                </Grid>
+                <Grid container />
               </Grid>
 
               {remainingConfigFields.length > 0 && (
                 <>
                   <Grid item xs={12} md={6} />
                   <Grid item xs={12} md={6}>
-                    <Grid container spacing={2} alignItems="stretch">
+                    <Grid container spacing={CONFIG_SPACING} alignItems="stretch">
                       {remainingConfigFields.map((field) =>
                         renderConfigInput(field as keyof ConfigOverrides, { xs: 12, sm: 12 })
                       )}
