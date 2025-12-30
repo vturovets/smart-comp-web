@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatNumber1dp, humanizeMetric, metricTitleMap } from "./format";
+import { formatNumber1dp, formatValueForDisplay, humanizeMetric, metricTitleMap } from "./format";
 
 describe("formatNumber1dp", () => {
   it("formats floats with one decimal place", () => {
@@ -36,5 +36,22 @@ describe("humanizeMetric", () => {
   it("handles empty or whitespace-only keys", () => {
     expect(humanizeMetric("")).toBe("—");
     expect(humanizeMetric("   ")).toBe("—");
+  });
+});
+
+describe("formatValueForDisplay", () => {
+  it("formats numbers and numeric strings to one decimal place", () => {
+    expect(formatValueForDisplay(10)).toBe("10.0");
+    expect(formatValueForDisplay("10.22")).toBe("10.2");
+  });
+
+  it("returns placeholder for null-like or non-finite numbers", () => {
+    expect(formatValueForDisplay(null)).toBe("—");
+    expect(formatValueForDisplay(undefined)).toBe("—");
+    expect(formatValueForDisplay(Number.NaN)).toBe("—");
+  });
+
+  it("stringifies objects safely", () => {
+    expect(formatValueForDisplay({ a: 1 })).toBe("{\"a\":1}");
   });
 });
