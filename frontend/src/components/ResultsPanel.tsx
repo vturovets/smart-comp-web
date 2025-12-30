@@ -61,6 +61,31 @@ const decisionColor = (significant?: boolean | null) => {
   return significant ? "success" : "default";
 };
 
+const formatValueForDisplay = (value: unknown) => {
+  if (value === null || value === undefined) return "—";
+
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+
+  if (Number.isFinite(numericValue)) {
+    return formatNumber1dp(numericValue);
+  }
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "—";
+    }
+  }
+
+  return String(value);
+};
+
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
   {
