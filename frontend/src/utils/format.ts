@@ -49,30 +49,3 @@ export const formatNumber1dp = (value: unknown): string => {
 
   return numericValue.toFixed(1);
 };
-
-export const formatValueForDisplay = (value: unknown): string => {
-  if (value === null || value === undefined) return "—";
-
-  if (typeof value === "number") {
-    return formatNumber1dp(value);
-  }
-
-  if (typeof value === "string") {
-    if (!value.trim()) return "—";
-
-    const numericValue = Number(value);
-    if (Number.isFinite(numericValue)) return formatNumber1dp(numericValue);
-
-    return value;
-  }
-
-  if (typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return "—";
-    }
-  }
-
-  return String(value);
-};

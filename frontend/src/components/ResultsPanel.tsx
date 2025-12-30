@@ -32,7 +32,7 @@ import {
 } from "../api";
 import { ArtifactsList } from "./ArtifactsList";
 import { PlotGallery } from "./PlotGallery";
-import { formatValueForDisplay, humanizeMetric } from "../utils/format";
+import { formatNumber1dp, humanizeMetric } from "../utils/format";
 
 interface ResultsPanelProps {
   jobId?: string | null;
@@ -89,10 +89,10 @@ const formatValueForDisplay = (value: unknown) => {
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
   {
-    field: "displayValue",
+    field: "value",
     headerName: "Value",
     flex: 1,
-    sortable: false
+    valueFormatter: ({ value }) => formatValueForDisplay(value)
   }
 ];
 
@@ -124,8 +124,7 @@ const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
     metric: humanizeMetric(metric),
-    value,
-    displayValue: formatValueForDisplay(value)
+    value
   }));
 
 const toGroupRows = (groups: KwGroupResult[]) =>
