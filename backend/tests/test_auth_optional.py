@@ -26,11 +26,11 @@ def _auth_env(tmp_path):
     }
 
 
-def test_auth_disabled_allows_requests(api_client, kw_zip_bytes: bytes) -> None:
+def test_auth_disabled_allows_requests(api_client) -> None:
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("dataset.csv", b"value\n1", "text/csv")},
+        files=[("files", ("dataset.csv", b"value\n1", "text/csv"))],
     )
     assert creation.status_code == 201
 
@@ -38,7 +38,6 @@ def test_auth_disabled_allows_requests(api_client, kw_zip_bytes: bytes) -> None:
 def test_auth_enabled_requires_token(
     monkeypatch: pytest.MonkeyPatch,
     fake_redis,
-    kw_zip_bytes: bytes,
     tmp_path,
 ) -> None:
     from app.core import auth as auth_module
@@ -62,7 +61,7 @@ def test_auth_enabled_requires_token(
     creation = client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("dataset.csv", b"value\n1", "text/csv")},
+        files=[("files", ("dataset.csv", b"value\n1", "text/csv"))],
         headers={"Authorization": "Bearer valid"},
     )
     assert creation.status_code == 201
@@ -72,7 +71,6 @@ def test_auth_enabled_requires_token(
 def test_domain_allowlist_enforced(
     monkeypatch: pytest.MonkeyPatch,
     fake_redis,
-    kw_zip_bytes: bytes,
     tmp_path,
 ) -> None:
     from app.core import auth as auth_module
@@ -96,7 +94,6 @@ def test_domain_allowlist_enforced(
 def test_job_visibility_is_scoped(
     monkeypatch: pytest.MonkeyPatch,
     fake_redis,
-    kw_zip_bytes: bytes,
     tmp_path,
 ) -> None:
     from app.core import auth as auth_module
@@ -115,7 +112,7 @@ def test_job_visibility_is_scoped(
     creation = client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("dataset.csv", b"value\n1", "text/csv")},
+        files=[("files", ("dataset.csv", b"value\n1", "text/csv"))],
         headers={"Authorization": "Bearer owner"},
     )
     job_id = creation.json()["jobId"]

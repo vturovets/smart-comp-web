@@ -59,19 +59,19 @@ def _replace_ids(value: Any, *, job_id: str | None = None) -> Any:
     if isinstance(value, str) and job_id:
         return value.replace("pact-job-1", job_id)
     return value
+    
 
-
-def _apply_state(states: Iterable[str], client, kw_zip_bytes: bytes) -> dict[str, Any]:
+def _apply_state(states: Iterable[str], client, kw_csv_files: list[tuple[str, bytes, str]]) -> dict[str, Any]:
     state_values: dict[str, Any] = {}
     for state in states:
-        state_values |= _handle_state(state, client, kw_zip_bytes, state_values)
+        state_values |= _handle_state(state, client, kw_csv_files, state_values)
     return state_values
 
 
 def _handle_state(
     state: str,
     client,
-    kw_zip_bytes: bytes,
+    kw_csv_files: list[tuple[str, bytes, str]],
     current: dict[str, Any],
 ) -> dict[str, Any]:
     if state == "ready to accept job creation":
@@ -91,7 +91,7 @@ def _handle_state(
         response = client.post(
             "/api/jobs",
             data={"jobType": "KW_PERMUTATION", "config": json.dumps({"permutationCount": 2})},
-            files={"kwBundle": ("bundle.zip", kw_zip_bytes, "application/zip")},
+            files=[("files", entry) for entry in kw_csv_files],
         )
         response.raise_for_status()
         return {"jobId": response.json()["jobId"]}
@@ -177,12 +177,12 @@ def _interaction_states(interaction: dict[str, Any]) -> list[str]:
 @pytest.mark.parametrize("interaction", _load_contract()[0]["interactions"])
 def test_provider_contracts(
     api_client,
-    kw_zip_bytes: bytes,
+    kw_csv_files: list[tuple[str, bytes, str]],
     monkeypatch: pytest.MonkeyPatch,
     interaction: dict[str, Any],
 ) -> None:
     states = _interaction_states(interaction)
-    state_values = _apply_state(states, api_client, kw_zip_bytes)
+    state_values = _apply_state(states, api_client, kw_csv_files)
     if next_job := state_values.get("nextJobId"):
         monkeypatch.setattr("app.core.job_service.uuid.uuid4", lambda: next_job)
     request = interaction["request"]
@@ -200,7 +200,7 @@ def test_provider_contracts(
                 "jobType": "BOOTSTRAP_SINGLE",
                 "config": json.dumps({"alpha": 0.05}),
             },
-            "files": {"file1": ("file1.csv", b"value\n1\n2", "text/csv")},
+            "files": [("files", ("file1.csv", b"value\n1\n2", "text/csv"))],
         }
 
     result = api_client.request(request["method"], path, **request_kwargs)

@@ -54,7 +54,7 @@ def test_upload_limit_enforced(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     response = client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("large.csv", large_bytes, "text/csv")},
+        files=[("files", ("large.csv", large_bytes, "text/csv"))],
     )
 
     assert response.status_code == 413
@@ -86,7 +86,7 @@ def test_job_timeout_returns_failed_status(monkeypatch: pytest.MonkeyPatch, tmp_
     creation = client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("dataset.csv", b"value\n1", "text/csv")},
+        files=[("files", ("dataset.csv", b"value\n1", "text/csv"))],
     )
     job_id = creation.json()["jobId"]
 

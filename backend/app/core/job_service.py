@@ -5,18 +5,13 @@ import logging
 import mimetypes
 import uuid
 from datetime import datetime, timezone
-from io import BytesIO
 from pathlib import Path
 from typing import Any
-import zipfile
-
-from redis import Redis
 
 from app.api.errors import ApiError
 from app.core.config import Settings, get_settings
 from app.core.contracts import ConfigOverrides, JobType
 from app.core.jobs import JobRecord, JobRepository, JobStatus
-from app.core.kw_zip import KWZipLayout, KWZipValidationError, validate_kw_zip
 from app.core.smart_comp import defaults_to_overrides, load_config_defaults
 from app.core.storage import JobPaths, cleanup_job, ensure_within_size_limit, prepare_job_paths, safe_join
 from app.worker import tasks as worker_tasks
@@ -50,42 +45,38 @@ class JobService:
         job_type: JobType,
         config: ConfigOverrides,
         *,
-        file1: bytes | None = None,
-        file2: bytes | None = None,
-        kw_bundle: bytes | None = None,
+        files: list[tuple[str, bytes]] | None = None,
         user_id: str | None = None,
     ) -> JobRecord:
         job_id = str(uuid.uuid4())
         job_paths = prepare_job_paths(job_id, self.settings.storage_root)
+        upload_files = files or []
 
         if self.settings.auth_enabled and not user_id:
             raise ApiError(401, "UNAUTHENTICATED", "Authentication required.")
+
+        for name, _ in upload_files:
+            if not name.lower().endswith(".csv"):
+                raise ApiError(400, "INVALID_FILE", f"File {name} must be a CSV.")
 
         resolved_config = self._resolve_config(config)
         (job_paths.input_dir / "config.json").write_text(json.dumps(resolved_config), encoding="utf-8")
         payload: dict[str, Any] = _deep_merge({"jobType": job_type.value}, resolved_config)
 
         if job_type == JobType.KW_PERMUTATION:
-            if kw_bundle is None:
-                raise ApiError(400, "MISSING_FILE", "kwBundle is required for KW_PERMUTATION.")
-            layout = self._validate_and_store_kw_bundle(job_paths, kw_bundle)
-            payload["kwLayout"] = layout.layout
-            payload["kwGroups"] = [group.name for group in layout.groups]
-            if file1 or file2:
-                raise ApiError(400, "INVALID_FILE", "file1/file2 are not accepted for KW_PERMUTATION.")
+            if len(upload_files) < 3:
+                raise ApiError(400, "MISSING_FILE", "KW_PERMUTATION requires at least three CSV files.")
+            kw_groups = self._store_kw_groups(job_paths, upload_files)
+            payload["kwGroups"] = kw_groups
         elif job_type == JobType.BOOTSTRAP_DUAL:
-            if file1 is None or file2 is None:
-                raise ApiError(400, "MISSING_FILE", "file1 and file2 are required for BOOTSTRAP_DUAL.")
-            self._store_file(job_paths.input_dir / "file1.csv", file1)
-            self._store_file(job_paths.input_dir / "file2.csv", file2)
+            if len(upload_files) != 2:
+                raise ApiError(400, "INVALID_FILE", "BOOTSTRAP_DUAL requires exactly two CSV files.")
+            self._store_file(job_paths.input_dir / "file1.csv", upload_files[0][1])
+            self._store_file(job_paths.input_dir / "file2.csv", upload_files[1][1])
         elif job_type in (JobType.BOOTSTRAP_SINGLE, JobType.DESCRIPTIVE_ONLY):
-            if file1 is None:
-                raise ApiError(400, "MISSING_FILE", "file1 is required for the selected jobType.")
-            self._store_file(job_paths.input_dir / "file1.csv", file1)
-            if file2 is not None:
-                self._store_file(job_paths.input_dir / "file2.csv", file2)
-            if kw_bundle is not None:
-                raise ApiError(400, "INVALID_FILE", "kwBundle is only valid for KW_PERMUTATION.")
+            if len(upload_files) != 1:
+                raise ApiError(400, "INVALID_FILE", "Selected jobType requires exactly one CSV file.")
+            self._store_file(job_paths.input_dir / "file1.csv", upload_files[0][1])
         else:  # pragma: no cover - defensive branch
             raise ApiError(400, "INVALID_JOB_TYPE", "Unsupported jobType.")
 
@@ -108,28 +99,25 @@ class JobService:
             raise ApiError(413, "UPLOAD_TOO_LARGE", str(exc)) from exc
         destination.write_bytes(data)
 
-    def _validate_and_store_kw_bundle(self, job_paths: JobPaths, kw_bundle: bytes) -> KWZipLayout:
-        try:
-            ensure_within_size_limit(len(kw_bundle), self._max_bytes)
-        except ValueError as exc:
-            raise ApiError(413, "UPLOAD_TOO_LARGE", str(exc)) from exc
-        try:
-            layout = validate_kw_zip(kw_bundle)
-        except KWZipValidationError as exc:
-            raise ApiError(400, exc.code, str(exc), details=exc.details) from exc
+    def _store_kw_groups(self, job_paths: JobPaths, files: list[tuple[str, bytes]]) -> list[str]:
+        group_names: list[str] = []
+        used_names: set[str] = set()
 
-        bundle_path = job_paths.input_dir / "kw_bundle.zip"
-        bundle_path.write_bytes(kw_bundle)
+        for index, (filename, data) in enumerate(files, start=1):
+            base_name = Path(filename).stem or f"group{index}"
+            candidate = base_name
+            suffix = 1
+            while candidate in used_names:
+                candidate = f"{base_name}_{suffix}"
+                suffix += 1
 
-        with zipfile.ZipFile(BytesIO(kw_bundle)) as zf:
-            for group in layout.groups:
-                for filename in group.files:
-                    target_dir = job_paths.input_dir / group.name
-                    target_dir.mkdir(parents=True, exist_ok=True)
-                    with zf.open(filename) as src:
-                        (target_dir / Path(filename).name).write_bytes(src.read())
+            used_names.add(candidate)
+            target_dir = job_paths.input_dir / candidate
+            target_dir.mkdir(parents=True, exist_ok=True)
+            self._store_file(target_dir / Path(filename).name, data)
+            group_names.append(candidate)
 
-        return layout
+        return group_names
 
     def get_job(self, job_id: str, *, user_id: str | None = None) -> JobRecord | None:
         record = self.repository.get(job_id)

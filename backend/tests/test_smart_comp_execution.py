@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import json
-from io import BytesIO
 from pathlib import Path
-import zipfile
 
 import pytest
 
@@ -24,12 +22,12 @@ def sample_csv_two() -> bytes:
 
 
 @pytest.fixture
-def kw_bundle_sample() -> bytes:
-    buffer = BytesIO()
-    with zipfile.ZipFile(buffer, "w") as zf:
-        zf.writestr("GroupA/a.csv", "value\n1\n2\n3\n4\n")
-        zf.writestr("GroupB/b.csv", "value\n5\n6\n7\n8\n")
-    return buffer.getvalue()
+def kw_group_files() -> list[tuple[str, bytes, str]]:
+    return [
+        ("GroupA.csv", b"value\n1\n2\n3\n4\n", "text/csv"),
+        ("GroupB.csv", b"value\n5\n6\n7\n8\n", "text/csv"),
+        ("GroupC.csv", b"value\n2\n4\n6\n8\n", "text/csv"),
+    ]
 
 
 def _read_json(path: Path) -> dict:
@@ -58,7 +56,7 @@ def test_bootstrap_single_flow(api_client, test_settings, sample_csv_one: bytes,
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps(config)},
-        files={"file1": ("dataset.csv", sample_csv_one, "text/csv")},
+        files=[("files", ("dataset.csv", sample_csv_one, "text/csv"))],
     )
     job_id = creation.json()["jobId"]
     output_dir = test_settings.storage_root / job_id / "output"
@@ -90,10 +88,10 @@ def test_bootstrap_dual_flow(
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_DUAL", "config": json.dumps(config)},
-        files={
-            "file1": ("dataset1.csv", sample_csv_one, "text/csv"),
-            "file2": ("dataset2.csv", sample_csv_two, "text/csv"),
-        },
+        files=[
+            ("files", ("dataset1.csv", sample_csv_one, "text/csv")),
+            ("files", ("dataset2.csv", sample_csv_two, "text/csv")),
+        ],
     )
     job_id = creation.json()["jobId"]
     output_dir = test_settings.storage_root / job_id / "output"
@@ -114,7 +112,7 @@ def test_descriptive_only_flow(api_client, test_settings, sample_csv_one: bytes,
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "DESCRIPTIVE_ONLY", "config": json.dumps(config)},
-        files={"file1": ("dataset.csv", sample_csv_one, "text/csv")},
+        files=[("files", ("dataset.csv", sample_csv_one, "text/csv"))],
     )
     job_id = creation.json()["jobId"]
     output_dir = test_settings.storage_root / job_id / "output"
@@ -127,7 +125,7 @@ def test_descriptive_only_flow(api_client, test_settings, sample_csv_one: bytes,
     assert sorted(p.name for p in (output_dir / "plots").glob("*.png"))
 
 
-def test_kw_permutation_flow(api_client, test_settings, kw_bundle_sample: bytes, golden_dir: Path) -> None:
+def test_kw_permutation_flow(api_client, test_settings, kw_group_files: list[tuple[str, bytes, str]], golden_dir: Path) -> None:
     config = {
         "permutationCount": 5,
         "alpha": 0.05,
@@ -136,7 +134,7 @@ def test_kw_permutation_flow(api_client, test_settings, kw_bundle_sample: bytes,
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "KW_PERMUTATION", "config": json.dumps(config)},
-        files={"kwBundle": ("bundle.zip", kw_bundle_sample, "application/zip")},
+        files=[("files", entry) for entry in kw_group_files],
     )
     job_id = creation.json()["jobId"]
     output_dir = test_settings.storage_root / job_id / "output"

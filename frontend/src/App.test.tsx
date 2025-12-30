@@ -72,7 +72,7 @@ describe("App", () => {
     expect(await screen.findByText(/analysis console/i)).toBeVisible();
 
     const file = new File(["a,b,c"], "data.csv", { type: "text/csv" });
-    const fileInput = screen.getByTestId("file1-input") as HTMLInputElement;
+    const fileInput = screen.getByTestId("files-input") as HTMLInputElement;
     await userEvent.upload(fileInput, file);
 
     await userEvent.click(screen.getByRole("button", { name: /start job/i }));
