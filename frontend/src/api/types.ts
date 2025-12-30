@@ -65,6 +65,12 @@ export interface PlotRef {
   artifactName: string;
 }
 
+export interface InterpretationText {
+  text?: string | null;
+}
+
+export type InterpretationContent = InterpretationText | string | null;
+
 export interface Decision {
   alpha?: number | null;
   pValue?: number | null;
@@ -93,7 +99,7 @@ export interface BootstrapSingleResults extends BaseResults {
   decision: Decision;
   metrics: Record<string, unknown>;
   descriptive: Record<string, unknown>;
-  interpretation?: Record<string, unknown> | null;
+  interpretation?: InterpretationContent;
 }
 
 export interface BootstrapDualResults extends BaseResults {
@@ -101,6 +107,7 @@ export interface BootstrapDualResults extends BaseResults {
   decision: Decision;
   metrics: Record<string, unknown>;
   descriptive: Record<string, unknown>;
+  interpretation?: InterpretationContent;
 }
 
 export interface KwPermutationResults extends BaseResults {
@@ -113,6 +120,7 @@ export interface KwPermutationResults extends BaseResults {
 export interface DescriptiveOnlyResults extends BaseResults {
   jobType: JobType.DESCRIPTIVE_ONLY;
   descriptive: Record<string, unknown>;
+  interpretation?: InterpretationContent;
 }
 
 export type JobResults =
