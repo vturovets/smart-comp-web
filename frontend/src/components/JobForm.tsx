@@ -306,7 +306,7 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
     () =>
       Object.keys(configGridColumns).filter(
         (field) =>
-          !["alpha", "threshold", "bootstrapIterations", "permutationCount", "sampleSize"].includes(
+          !["alpha", "threshold", "bootstrapIterations", "sampleSize", "permutationCount"].includes(
             field
           )
       ),
@@ -403,8 +403,8 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                   {renderConfigInput("alpha")}
                   {renderConfigInput("threshold")}
                   {renderConfigInput("bootstrapIterations")}
-                  {renderConfigInput("permutationCount")}
                   {renderConfigInput("sampleSize")}
+                  {renderConfigInput("permutationCount")}
                 </Grid>
               </Grid>
 
