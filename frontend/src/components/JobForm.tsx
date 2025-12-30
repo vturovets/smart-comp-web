@@ -305,7 +305,10 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
   const remainingConfigFields = useMemo(
     () =>
       Object.keys(configGridColumns).filter(
-        (field) => !["alpha", "threshold", "bootstrapIterations", "sampleSize"].includes(field)
+        (field) =>
+          !["alpha", "threshold", "bootstrapIterations", "permutationCount", "sampleSize"].includes(
+            field
+          )
       ),
     [configGridColumns]
   );
@@ -400,6 +403,7 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                   {renderConfigInput("alpha")}
                   {renderConfigInput("threshold")}
                   {renderConfigInput("bootstrapIterations")}
+                  {renderConfigInput("permutationCount")}
                   {renderConfigInput("sampleSize")}
                 </Grid>
               </Grid>
