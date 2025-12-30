@@ -28,7 +28,16 @@
     "p95_empirical": 19.5,
     "sampleSize": 6
   },
-  "plots": [],
+  "plots": [
+    {
+      "kind": "boxplot",
+      "artifactName": "plots/boxplot_file1.png"
+    },
+    {
+      "kind": "histogram",
+      "artifactName": "plots/histogram_file1.png"
+    }
+  ],
   "interpretation": {
     "text": "## Summary of Statistical Findings:\n- **P-value** = 0.000 (alpha = 0.05)\n- **Result**: A statistically significant difference was detected.\n- The P95 (19.6) exceeds the threshold (18.0). \u26a0\ufe0f\n- Margin of Error for Sample 1: \u00b12.3%\n\n## Recommendations:\n- Proceed with decision-making based on the observed difference."
   }

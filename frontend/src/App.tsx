@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, Box, Container, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
-import { Artifact, JobStatus, buildApiClient } from "./api";
+import { Artifact, JobStatus, PlotPayload, buildApiClient } from "./api";
 import { JobForm } from "./components/JobForm";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { StatusPanel } from "./components/StatusPanel";
@@ -55,16 +55,27 @@ function App() {
     onSuccess: () => jobStatus.refetch()
   });
 
-  const loadPlot = async (artifactName: string) => {
+  const loadPlot = async (artifactName: string): Promise<PlotPayload> => {
     if (!jobId) throw new Error("Missing job id for plot");
-    const blob = await api.downloadArtifact(jobId, artifactName);
-    const text = await blob.text();
-    try {
-      return JSON.parse(text);
-    } catch (error) {
-      setPlotError(`Plot artifact ${artifactName} is not JSON.`);
-      throw error;
+    const { blob, contentType } = await api.downloadArtifactWithInfo(jobId, artifactName);
+    const type = contentType || blob.type;
+
+    if (type?.includes("json") || artifactName.endsWith(".json")) {
+      const text = await blob.text();
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        setPlotError(`Plot artifact ${artifactName} is not JSON.`);
+        throw error;
+      }
     }
+
+    if (type?.startsWith("image/")) {
+      return { imageUrl: URL.createObjectURL(blob), contentType: type };
+    }
+
+    setPlotError(`Plot artifact ${artifactName} is not a supported plot format.`);
+    throw new Error(`Unsupported plot format for ${artifactName}`);
   };
 
   const handleDownload = async (artifact: Artifact) => {

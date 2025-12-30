@@ -14,5 +14,14 @@
     "mode": 10.0,
     "p95_empirical": 19.5
   },
-  "plots": []
+  "plots": [
+    {
+      "kind": "boxplot",
+      "artifactName": "plots/boxplot_file1.png"
+    },
+    {
+      "kind": "histogram",
+      "artifactName": "plots/histogram_file1.png"
+    }
+  ]
 }

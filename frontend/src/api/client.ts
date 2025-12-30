@@ -84,12 +84,21 @@ export class ApiClient {
     return handleResponse(response);
   }
 
-  async downloadArtifact(jobId: string, name: string): Promise<Blob> {
+  async downloadArtifactWithInfo(
+    jobId: string,
+    name: string
+  ): Promise<{ blob: Blob; contentType: string | null }> {
     const response = await fetch(`${this.baseUrl}/api/jobs/${jobId}/artifacts/${name}`);
     if (!response.ok) {
       throw new Error(`Failed to download artifact ${name}`);
     }
-    return response.blob();
+    const blob = await response.blob();
+    return { blob, contentType: response.headers.get("content-type") };
+  }
+
+  async downloadArtifact(jobId: string, name: string): Promise<Blob> {
+    const { blob } = await this.downloadArtifactWithInfo(jobId, name);
+    return blob;
   }
 }
 
