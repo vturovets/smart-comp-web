@@ -23,6 +23,18 @@ import { ConfigDefaults, ConfigOverrides, CreateJobPayload, JobType } from "../a
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const allowedTypes = new Set(["text/csv", "application/zip", "application/x-zip-compressed"]);
+const CONTROL_HEIGHT = 56;
+const STATUS_LINE_HEIGHT = 28;
+const configFieldSx = {
+  "& .MuiInputBase-root": {
+    height: CONTROL_HEIGHT,
+    alignItems: "center"
+  },
+  "& .MuiInputBase-input": {
+    padding: "0 14px",
+    boxSizing: "border-box"
+  }
+};
 
 interface JobFormProps {
   defaults?: ConfigDefaults;
@@ -55,6 +67,81 @@ const numericFields: Array<keyof ConfigOverrides> = [
   "outlierLowerBound",
   "outlierUpperBound"
 ];
+
+interface UploadControlProps {
+  label: string;
+  variant?: "text" | "outlined" | "contained";
+  accept?: string;
+  dataTestId?: string;
+  showStatus?: boolean;
+  state?: UploadState;
+  onFileChange: (file: File | null) => void;
+}
+
+const getUploadStatus = (state?: UploadState) => {
+  if (!state?.file) return null;
+
+  let label: string | null = null;
+  if (state.status === "uploading") label = "Uploading...";
+  if (state.status === "uploaded") label = "Uploaded";
+  if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
+
+  const color =
+    state.status === "failed"
+      ? "error.main"
+      : state.status === "uploaded"
+        ? "success.main"
+        : "text.secondary";
+
+  return {
+    text: `${state.file.name}${label ? ` — ${label}` : ""}`,
+    color
+  } as const;
+};
+
+const UploadControl = ({
+  label,
+  variant = "contained",
+  accept = ".csv,.zip",
+  dataTestId,
+  showStatus = true,
+  state,
+  onFileChange
+}: UploadControlProps) => {
+  const status = showStatus ? getUploadStatus(state) : null;
+
+  return (
+    <Stack spacing={0.5} sx={{ width: "100%" }}>
+      <Button component="label" variant={variant} fullWidth sx={{ height: CONTROL_HEIGHT }}>
+        {label}
+        <input
+          type="file"
+          hidden
+          onChange={(e) => {
+            const selected = e.target.files?.[0] ?? null;
+            onFileChange(selected);
+          }}
+          accept={accept}
+          data-testid={dataTestId}
+        />
+      </Button>
+      {showStatus && (
+        <Box sx={{ minHeight: STATUS_LINE_HEIGHT, display: "flex", alignItems: "center" }}>
+          {status ? (
+            <Typography
+              variant="body2"
+              color={status.color}
+              noWrap
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {status.text}
+            </Typography>
+          ) : null}
+        </Box>
+      )}
+    </Stack>
+  );
+};
 
 export function JobForm({ defaults, onCreate, isCreating, error, createStatus }: JobFormProps) {
   const [jobType, setJobType] = useState<JobType>(JobType.BOOTSTRAP_SINGLE);
@@ -161,29 +248,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
     }
   }, [createStatus, error]);
 
-  const renderStatusLine = (state: UploadState) => {
-    if (!state.file) return null;
-
-    let label: string | null = null;
-    if (state.status === "uploading") label = "Uploading...";
-    if (state.status === "uploaded") label = "Uploaded";
-    if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
-
-    const color =
-      state.status === "failed"
-        ? "error.main"
-        : state.status === "uploaded"
-          ? "success.main"
-          : "text.secondary";
-
-    return (
-      <Typography variant="body2" color={color} sx={{ wordBreak: "break-word" }}>
-        {state.file.name}
-        {label ? ` — ${label}` : ""}
-      </Typography>
-    );
-  };
-
   const configGridColumns = useMemo(() => {
     const items = [
       {
@@ -212,8 +276,39 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
         disabled: false
       }
     ];
-    return items.filter((item) => !item.disabled || item.field === "alpha");
+    return items.reduce<Record<string, (typeof items)[number]>>((acc, item) => {
+      acc[item.field] = item;
+      return acc;
+    }, {});
   }, [isDescriptive, isKw]);
+
+  const renderConfigInput = (field: keyof ConfigOverrides, gridProps?: { xs?: number; sm?: number }) => {
+    const meta = configGridColumns[field];
+    if (!meta) return null;
+
+    return (
+      <Grid item xs={gridProps?.xs ?? 12} sm={gridProps?.sm ?? 6} key={field}>
+        <TextField
+          label={meta.label}
+          type="number"
+          fullWidth
+          value={(config[field] as number | undefined | null) ?? ""}
+          onChange={(e) => handleConfigChange(field, e.target.value)}
+          disabled={meta.disabled}
+          inputProps={{ min: 0, step: 0.001 }}
+          sx={configFieldSx}
+        />
+      </Grid>
+    );
+  };
+  const remainingConfigFields = useMemo(
+    () =>
+      Object.keys(configGridColumns).filter(
+        (field) => !["alpha", "threshold", "bootstrapIterations", "sampleSize"].includes(field)
+      ),
+    [configGridColumns]
+  );
+  const shouldShowFile3 = isKw || !requiresSecondFile;
 
   return (
     <Card
@@ -282,79 +377,78 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
             </Grid>
           </Grid>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 2,
-              alignItems: "start"
-            }}
-          >
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Uploads</Typography>
-              <Stack spacing={0.5}>
-                <Button component="label" variant="contained" fullWidth>
-                  Upload file 1 (required)
-                  <input
-                    type="file"
-                    hidden
-                    onChange={(e) => {
-                      const selected = e.target.files?.[0] ?? null;
-                      setFile1({
-                        file: selected,
-                        status: "idle",
-                        error: null
-                      });
-                    }}
-                    accept=".csv,.zip"
-                    data-testid="file1-input"
-                  />
-                </Button>
-                {renderStatusLine(file1)}
-              </Stack>
+          <Box>
+            <Grid container spacing={2} alignItems="stretch">
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Uploads</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Config overrides</Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <UploadControl
+                  label="Upload file 1 (required)"
+                  state={file1}
+                  onFileChange={(file) => setFile1({ file, status: "idle", error: null })}
+                  dataTestId="file1-input"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Grid container spacing={2} alignItems="stretch">
+                  {renderConfigInput("alpha")}
+                  {renderConfigInput("threshold")}
+                </Grid>
+              </Grid>
+
               {requiresSecondFile && (
-                <Stack spacing={0.5}>
-                  <Button component="label" variant="outlined" fullWidth>
-                    Upload file 2
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] ?? null;
-                        setFile2({
-                          file: selected,
-                          status: "idle",
-                          error: null
-                        });
-                      }}
-                      accept=".csv,.zip"
-                      data-testid="file2-input"
+                <>
+                  <Grid item xs={12} md={6}>
+                    <UploadControl
+                      label="Upload file 2"
+                      variant="outlined"
+                      showStatus={false}
+                      onFileChange={(file) => setFile2({ file, status: "idle", error: null })}
+                      dataTestId="file2-input"
                     />
-                  </Button>
-                </Stack>
+                  </Grid>
+                  <Grid item xs={12} md={6} />
+                </>
               )}
-              {(isKw || !requiresSecondFile) && (
-                <Stack spacing={0.5}>
-                  <Button component="label" variant="outlined" fullWidth>
-                    Upload file 3 (optional)
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] ?? null;
-                        setFile3({
-                          file: selected,
-                          status: "idle",
-                          error: null
-                        });
-                      }}
-                      accept=".csv,.zip"
-                      data-testid="file3-input"
-                    />
-                  </Button>
-                  {renderStatusLine(file3)}
-                </Stack>
+
+              <Grid item xs={12} md={6}>
+                {shouldShowFile3 ? (
+                  <UploadControl
+                    label="Upload file 3 (optional)"
+                    variant="outlined"
+                    state={file3}
+                    onFileChange={(file) => setFile3({ file, status: "idle", error: null })}
+                    dataTestId="file3-input"
+                  />
+                ) : null}
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Grid container spacing={2} alignItems="stretch">
+                  {renderConfigInput("bootstrapIterations")}
+                  {renderConfigInput("sampleSize")}
+                </Grid>
+              </Grid>
+
+              {remainingConfigFields.length > 0 && (
+                <>
+                  <Grid item xs={12} md={6} />
+                  <Grid item xs={12} md={6}>
+                    <Grid container spacing={2} alignItems="stretch">
+                      {remainingConfigFields.map((field) =>
+                        renderConfigInput(field as keyof ConfigOverrides, { xs: 12, sm: 12 })
+                      )}
+                    </Grid>
+                  </Grid>
+                </>
               )}
+            </Grid>
+
+            <Stack spacing={2} sx={{ mt: 2 }}>
               {isKw && (
                 <Alert severity="info" variant="outlined" data-testid="kw-helper">
                   <Typography fontWeight={600}>KW ZIP guidance</Typography>
@@ -365,27 +459,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                   </ul>
                 </Alert>
               )}
-              {validationError && <Alert severity="warning">{validationError}</Alert>}
-              {error && <Alert severity="error">{error}</Alert>}
-            </Stack>
-
-            <Stack spacing={2}>
-              <Typography variant="subtitle1">Config overrides</Typography>
-              <Grid container spacing={2}>
-                {configGridColumns.map((item) => (
-                  <Grid item xs={12} sm={6} key={item.field}>
-                    <TextField
-                      label={item.label}
-                      type="number"
-                      fullWidth
-                      value={(config[item.field] as number | undefined | null) ?? ""}
-                      onChange={(e) => handleConfigChange(item.field, e.target.value)}
-                      disabled={item.disabled}
-                      inputProps={{ min: 0, step: 0.001 }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
               <FormGroup row>
                 <FormControlLabel
                   control={
@@ -415,6 +488,8 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                   label="KDE"
                 />
               </FormGroup>
+              {validationError && <Alert severity="warning">{validationError}</Alert>}
+              {error && <Alert severity="error">{error}</Alert>}
             </Stack>
           </Box>
 
