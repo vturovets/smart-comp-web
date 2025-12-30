@@ -106,6 +106,7 @@ function App() {
               isCreating={createJob.isPending}
               onCreate={(payload) => createJob.mutate(payload)}
               error={createJob.isError ? (createJob.error as Error).message : null}
+              createStatus={createJob.status}
             />
 
             <Stack spacing={2}>
