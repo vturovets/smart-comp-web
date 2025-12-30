@@ -13,7 +13,7 @@ const baseProps = {
   isError: false,
   artifacts: [],
   onDownloadArtifact: vi.fn(),
-  loadPlot: vi.fn().mockResolvedValue({})
+  loadPlot: vi.fn().mockResolvedValue({ data: [] })
 };
 
 const createWrapper = () => {

@@ -377,7 +377,7 @@ class SmartCompExecutor:
 
         plots = []
         if plots_requested:
-            plots = self._plot_references()
+            plots = self._collect_plot_references()
 
         descriptive_section: dict[str, Any] = {}
         if descriptive_results:
@@ -400,7 +400,7 @@ class SmartCompExecutor:
 
     def _normalize_descriptive(self, descriptive_results: dict[str, Any], plots_requested: bool) -> dict[str, Any]:
         descriptive_section = next(iter(descriptive_results.values())) if descriptive_results else {}
-        plots = self._plot_references() if plots_requested else []
+        plots = self._collect_plot_references() if plots_requested else []
         payload = {
             "jobId": self.job_id,
             "jobType": self.job_type,
@@ -501,6 +501,12 @@ class SmartCompExecutor:
             kind = "histogram" if "histogram" in file.name else "boxplot" if "boxplot" in file.name else "kde"
             refs.append({"kind": kind, "artifactName": f"plots/{file.name}"})
         return sorted(refs, key=lambda entry: entry["artifactName"])
+
+    def _collect_plot_references(self) -> list[dict[str, str]]:
+        self._move_plots()
+        refs = self._plot_references()
+        flags = self._plot_flags()
+        return [ref for ref in refs if flags.get(ref["kind"], False)]
 
     def _count_rows(self, path: Path) -> int:
         try:

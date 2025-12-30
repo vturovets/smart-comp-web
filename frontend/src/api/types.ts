@@ -65,6 +65,18 @@ export interface PlotRef {
   artifactName: string;
 }
 
+export interface PlotJSONPayload {
+  data: any;
+  layout?: any;
+}
+
+export interface PlotImagePayload {
+  imageUrl: string;
+  contentType?: string | null;
+}
+
+export type PlotPayload = PlotJSONPayload | PlotImagePayload;
+
 export interface InterpretationText {
   text?: string | null;
 }

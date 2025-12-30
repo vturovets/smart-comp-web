@@ -27,6 +27,7 @@ import {
   JobType,
   KwGroupResult,
   KwPermutationResults,
+  PlotPayload,
   PlotRef
 } from "../api";
 import { ArtifactsList } from "./ArtifactsList";
@@ -40,7 +41,7 @@ interface ResultsPanelProps {
   results?: JobResults;
   artifacts?: Artifact[];
   onDownloadArtifact: (artifact: Artifact) => Promise<void>;
-  loadPlot: (artifactName: string) => Promise<{ data: any; layout?: any }>;
+  loadPlot: (artifactName: string) => Promise<PlotPayload>;
 }
 
 const initialExpandedState = {
@@ -142,7 +143,7 @@ interface PlotsAccordionProps {
   expanded: boolean;
   isLoading?: boolean;
   onChange: (event: SyntheticEvent, expanded: boolean) => void;
-  loadPlot: (artifactName: string) => Promise<{ data: any; layout?: any }>;
+  loadPlot: (artifactName: string) => Promise<PlotPayload>;
 }
 
 const PlotsAccordion = ({ jobId, plots, hasResults, expanded, isLoading, onChange, loadPlot }: PlotsAccordionProps) => {

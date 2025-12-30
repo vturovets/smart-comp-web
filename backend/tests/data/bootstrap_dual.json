@@ -31,7 +31,24 @@
     "p95_empirical": 19.5,
     "sampleSize": 6
   },
-  "plots": [],
+  "plots": [
+    {
+      "kind": "boxplot",
+      "artifactName": "plots/boxplot_file1.png"
+    },
+    {
+      "kind": "boxplot",
+      "artifactName": "plots/boxplot_file2.png"
+    },
+    {
+      "kind": "histogram",
+      "artifactName": "plots/histogram_file1.png"
+    },
+    {
+      "kind": "histogram",
+      "artifactName": "plots/histogram_file2.png"
+    }
+  ],
   "interpretation": {
     "text": "## Summary of Statistical Findings:\n- **P-value** = 1.000 (alpha = 0.05)\n- **Result**: No statistically significant difference was detected.\n- P95 of Sample 1: 18.6\n- P95 of Sample 2: 17.6\n- Margin of Error for Sample 1: \u00b115.1%\n- Margin of Error for Sample 2: \u00b117.6%\n\n## Recommendations:\n- No strong evidence of difference; monitor further if needed.\n- Large margin of error detected. Larger sample size is recommended for more precise estimation."
   }

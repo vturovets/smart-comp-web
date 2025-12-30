@@ -43,9 +43,11 @@ const mockApi = {
   }),
   getResults: vi.fn().mockResolvedValue(mockResults),
   listArtifacts: vi.fn().mockResolvedValue(mockArtifacts),
-  downloadArtifact: vi.fn().mockResolvedValue(
-    new Blob([JSON.stringify({ data: [{ x: [1, 2], y: [3, 4] }] })], { type: "application/json" })
-  ),
+  downloadArtifactWithInfo: vi.fn().mockResolvedValue({
+    blob: new Blob([JSON.stringify({ data: [{ x: [1, 2], y: [3, 4] }] })], { type: "application/json" }),
+    contentType: "application/json"
+  }),
+  downloadArtifact: vi.fn().mockResolvedValue(new Blob()),
   cancelJob: vi.fn().mockResolvedValue(undefined)
 };
 

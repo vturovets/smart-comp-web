@@ -2,12 +2,12 @@ import { useQueries } from "@tanstack/react-query";
 import { Typography } from "@mui/material";
 import Plot from "react-plotly.js";
 
-import { PlotRef } from "../api";
+import { PlotPayload, PlotRef } from "../api";
 
 interface PlotGalleryProps {
   jobId: string;
   plots?: PlotRef[];
-  loadPlot: (artifactName: string) => Promise<{ data: any; layout?: any }>;
+  loadPlot: (artifactName: string) => Promise<PlotPayload>;
 }
 
 export function PlotGallery({ jobId, plots = [], loadPlot }: PlotGalleryProps) {
@@ -35,11 +35,27 @@ export function PlotGallery({ jobId, plots = [], loadPlot }: PlotGalleryProps) {
           );
         }
         const payload = query.data;
+        const title = ref.kind || ref.artifactName;
+        if (payload && "imageUrl" in payload) {
+          return (
+            <div key={ref.artifactName} className="plot-card">
+              <img
+                src={payload.imageUrl}
+                alt={title}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+              <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                {title}
+              </Typography>
+            </div>
+          );
+        }
+
         return (
           <Plot
             key={ref.artifactName}
             data={payload?.data ?? []}
-            layout={{ title: ref.kind || ref.artifactName, ...(payload?.layout ?? {}) }}
+            layout={{ title, ...(payload?.layout ?? {}) }}
             useResizeHandler
             style={{ width: "100%", height: "100%" }}
             className="plot-card"
