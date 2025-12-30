@@ -14,12 +14,14 @@ import {
   Typography
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ReactMarkdown from "react-markdown";
 
 import {
   Artifact,
   BootstrapDualResults,
   BootstrapSingleResults,
   DescriptiveOnlyResults,
+  InterpretationContent,
   JobResults,
   JobType,
   KwGroupResult,
@@ -46,6 +48,7 @@ const initialExpandedState = {
   omnibus: false,
   groupDetails: false,
   descriptiveSummary: false,
+  interpretation: false,
   artifacts: false
 } as const;
 
@@ -105,6 +108,63 @@ const ResultsAccordionSection = ({ id, title, expanded, onChange, children, isEm
     <AccordionDetails>{isEmpty ? <Typography color="text.secondary">No data</Typography> : children}</AccordionDetails>
   </Accordion>
 );
+
+const normalizeInterpretationText = (interpretation?: InterpretationContent | null): string | null => {
+  const normalize = (text: unknown) => (typeof text === "string" ? text.replace(/\\n/g, "\n") : null);
+
+  if (!interpretation) return null;
+
+  if (typeof interpretation === "string") {
+    try {
+      const parsed = JSON.parse(interpretation);
+      if (parsed && typeof parsed === "object" && "text" in parsed) {
+        return normalize((parsed as { text?: unknown }).text);
+      }
+    } catch {
+      // fall through to treat as raw text
+    }
+    return normalize(interpretation);
+  }
+
+  if (typeof interpretation === "object" && "text" in interpretation) {
+    return normalize((interpretation as { text?: unknown }).text);
+  }
+
+  return null;
+};
+
+interface InterpretationSectionProps {
+  interpretation?: InterpretationContent | null;
+  expanded: boolean;
+  onChange: (event: SyntheticEvent, expanded: boolean) => void;
+}
+
+const InterpretationSection = ({ interpretation, expanded, onChange }: InterpretationSectionProps) => {
+  const interpretationText = normalizeInterpretationText(interpretation);
+  return (
+    <ResultsAccordionSection id="interpretation" title="Interpretation" expanded={expanded} onChange={onChange}>
+      <Box
+        sx={{
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 1,
+          p: 2,
+          bgcolor: "background.paper",
+          maxHeight: 320,
+          overflowY: "auto",
+          minWidth: 0
+        }}
+        data-testid="interpretation-panel"
+      >
+        {interpretationText ? (
+          <ReactMarkdown>{interpretationText}</ReactMarkdown>
+        ) : (
+          <Typography color="text.secondary">No interpretation available for this job.</Typography>
+        )}
+      </Box>
+    </ResultsAccordionSection>
+  );
+};
 
 export function ResultsPanel({
   jobId,
@@ -179,9 +239,11 @@ export function ResultsPanel({
                 <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
-            {data.interpretation && (
-              <Alert severity="info">Interpretation: {JSON.stringify(data.interpretation)}</Alert>
-            )}
+            <InterpretationSection
+              interpretation={data.interpretation}
+              expanded={expandedSections.interpretation}
+              onChange={handleAccordionChange("interpretation")}
+            />
           </Stack>
         );
       }
@@ -218,6 +280,11 @@ export function ResultsPanel({
                 <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
+            <InterpretationSection
+              interpretation={data.interpretation}
+              expanded={expandedSections.interpretation}
+              onChange={handleAccordionChange("interpretation")}
+            />
           </Stack>
         );
       }
@@ -276,6 +343,11 @@ export function ResultsPanel({
                 <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
               </Box>
             </ResultsAccordionSection>
+            <InterpretationSection
+              interpretation={data.interpretation}
+              expanded={expandedSections.interpretation}
+              onChange={handleAccordionChange("interpretation")}
+            />
           </Stack>
         );
       }
