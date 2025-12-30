@@ -1,5 +1,5 @@
-p_value=0.2
+p_value=0.0
 iterations=5
-observed_h=5.3
+observed_h=5.7
 tie_correction=1.0
- 
+  

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import importlib
-from io import BytesIO
 from pathlib import Path
 from typing import Generator
-import zipfile
 
 import pytest
 from fastapi.testclient import TestClient
@@ -150,9 +148,9 @@ def build_test_client(
 
 
 @pytest.fixture
-def kw_zip_bytes() -> bytes:
-    buffer = BytesIO()
-    with zipfile.ZipFile(buffer, "w") as zf:
-        zf.writestr("GroupA/a1.csv", "value\n1")
-        zf.writestr("GroupB/b1.csv", "value\n2")
-    return buffer.getvalue()
+def kw_csv_files() -> list[tuple[str, bytes, str]]:
+    return [
+        ("GroupA.csv", b"value\n1\n2\n3\n", "text/csv"),
+        ("GroupB.csv", b"value\n4\n5\n6\n", "text/csv"),
+        ("GroupC.csv", b"value\n7\n8\n9\n", "text/csv"),
+    ]

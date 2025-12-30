@@ -160,7 +160,5 @@ export interface JobCreateResponse {
 export interface CreateJobPayload {
   jobType: JobType;
   config?: ConfigOverrides;
-  file1?: File | null;
-  file2?: File | null;
-  file3?: File | null;
+  files?: File[];
 }

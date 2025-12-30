@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 
 
-def test_cancel_completed_job_rejected(api_client, kw_zip_bytes: bytes) -> None:
+def test_cancel_completed_job_rejected(api_client, kw_csv_files: list[tuple[str, bytes, str]]) -> None:
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "KW_PERMUTATION", "config": json.dumps({"permutationCount": 1})},
-        files={"kwBundle": ("bundle.zip", kw_zip_bytes, "application/zip")},
+        files=[("files", entry) for entry in kw_csv_files],
     )
     job_id = creation.json()["jobId"]
 
@@ -16,11 +16,11 @@ def test_cancel_completed_job_rejected(api_client, kw_zip_bytes: bytes) -> None:
     assert cancel_response.json()["error"]["code"] == "INVALID_STATE"
 
 
-def test_artifact_list_contains_logs(api_client, kw_zip_bytes: bytes) -> None:
+def test_artifact_list_contains_logs(api_client, kw_csv_files: list[tuple[str, bytes, str]]) -> None:
     creation = api_client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": json.dumps({"bootstrapIterations": 1})},
-        files={"file1": ("dataset.csv", b"value\n1", "text/csv")},
+        files=[("files", ("dataset.csv", b"value\n1", "text/csv"))],
     )
     job_id = creation.json()["jobId"]
 

@@ -50,9 +50,7 @@ export class ApiClient {
     if (payload.config) {
       formData.append("config", JSON.stringify(payload.config));
     }
-    if (payload.file1) formData.append("file1", payload.file1);
-    if (payload.file2) formData.append("file2", payload.file2);
-    if (payload.file3) formData.append("file3", payload.file3);
+    payload.files?.forEach((file) => formData.append("files", file));
 
     const response = await fetch(`${this.baseUrl}/api/jobs`, {
       method: "POST",

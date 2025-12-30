@@ -4,7 +4,6 @@ import json
 
 import pytest
 
-
 def test_config_defaults_contract(api_client) -> None:
     response = api_client.get("/api/config/defaults")
     assert response.status_code == 200
@@ -14,11 +13,11 @@ def test_config_defaults_contract(api_client) -> None:
     assert isinstance(body["plots"], dict)
 
 
-def test_create_kw_job_and_fetch_results(api_client, kw_zip_bytes: bytes) -> None:
+def test_create_kw_job_and_fetch_results(api_client, kw_csv_files: list[tuple[str, bytes, str]]) -> None:
     response = api_client.post(
         "/api/jobs",
         data={"jobType": "KW_PERMUTATION", "config": json.dumps({"permutationCount": 2})},
-        files={"kwBundle": ("bundle.zip", kw_zip_bytes, "application/zip")},
+        files=[("files", entry) for entry in kw_csv_files],
     )
     assert response.status_code == 201
     job_id = response.json()["jobId"]
@@ -48,7 +47,7 @@ def test_invalid_config_rejected(api_client) -> None:
     response = api_client.post(
         "/api/jobs",
         data={"jobType": "BOOTSTRAP_SINGLE", "config": '{"unknown":true}'},
-        files={"file1": ("data.csv", b"value\n1", "text/csv")},
+        files=[("files", ("data.csv", b"value\n1", "text/csv"))],
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_CONFIG"

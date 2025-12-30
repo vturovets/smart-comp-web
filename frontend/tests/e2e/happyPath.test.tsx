@@ -72,9 +72,13 @@ describe("happy path UI e2e (mocked provider)", () => {
     await userEvent.click(screen.getByRole("option", { name: /kw permutation/i }));
     expect(screen.getByTestId("kw-helper")).toBeVisible();
 
-    const fileInput = screen.getByTestId("file1-input") as HTMLInputElement;
-    const file = new File(["g1,g2"], "kw.zip", { type: "application/zip" });
-    await userEvent.upload(fileInput, file);
+    const fileInput = screen.getByTestId("files-input") as HTMLInputElement;
+    const files = [
+      new File(["a"], "group-a.csv", { type: "text/csv" }),
+      new File(["b"], "group-b.csv", { type: "text/csv" }),
+      new File(["c"], "group-c.csv", { type: "text/csv" })
+    ];
+    await userEvent.upload(fileInput, files);
 
     await userEvent.click(screen.getByRole("button", { name: /start job/i }));
     await waitFor(() => expect(screen.getByText(/completed/i)).toBeInTheDocument());

@@ -3,14 +3,15 @@
   "jobType": "KW_PERMUTATION",
   "decision": {
     "alpha": 0.05,
-    "pValue": 0.2
+    "pValue": 0
   },
   "omnibus": {
-    "hStatistic": 5.333333333333336,
+    "hStatistic": 5.734042553191489,
     "permutations": 5,
-    "totalN": 8,
-    "tieCorrection": 1.0,
+    "totalN": 12,
+    "tieCorrection": 0.986013986013986,
     "groupSizes": [
+      4,
       4,
       4
     ]
@@ -20,7 +21,7 @@
       "groupName": "GroupA",
       "files": [
         {
-          "fileName": "a.csv",
+          "fileName": "GroupA.csv",
           "n": 4,
           "p95": 3.8499999999999996,
           "median": 2.5
@@ -31,10 +32,21 @@
       "groupName": "GroupB",
       "files": [
         {
-          "fileName": "b.csv",
+          "fileName": "GroupB.csv",
           "n": 4,
           "p95": 7.85,
           "median": 6.5
+        }
+      ]
+    },
+    {
+      "groupName": "GroupC",
+      "files": [
+        {
+          "fileName": "GroupC.csv",
+          "n": 4,
+          "p95": 7.699999999999999,
+          "median": 5.0
         }
       ]
     }

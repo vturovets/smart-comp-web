@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ConfigDefaults, ConfigOverrides, CreateJobPayload, JobType } from "../api";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-const allowedTypes = new Set(["text/csv", "application/zip", "application/x-zip-compressed"]);
+const allowedTypes = new Set(["text/csv"]);
 const CONTROL_HEIGHT = 56;
 const STATUS_LINE_HEIGHT = 28;
 const CONFIG_SPACING = 2;
@@ -48,16 +48,10 @@ interface JobFormProps {
 type UploadStatus = "idle" | "uploading" | "uploaded" | "failed";
 
 interface UploadState {
-  file: File | null;
+  file: File;
   status: UploadStatus;
   error?: string | null;
 }
-
-const initialUploadState: UploadState = {
-  file: null,
-  status: "idle",
-  error: null
-};
 
 const numericFields: Array<keyof ConfigOverrides> = [
   "alpha",
@@ -71,75 +65,36 @@ const numericFields: Array<keyof ConfigOverrides> = [
 
 interface UploadControlProps {
   label: string;
-  variant?: "text" | "outlined" | "contained";
   accept?: string;
   dataTestId?: string;
-  showStatus?: boolean;
-  state?: UploadState;
-  onFileChange: (file: File | null) => void;
+  multiple?: boolean;
+  onFilesChange: (files: FileList | null) => void;
 }
-
-const getUploadStatus = (state?: UploadState) => {
-  if (!state?.file) return null;
-
-  let label: string | null = null;
-  if (state.status === "uploading") label = "Uploading...";
-  if (state.status === "uploaded") label = "Uploaded";
-  if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
-
-  const color =
-    state.status === "failed"
-      ? "error.main"
-      : state.status === "uploaded"
-        ? "success.main"
-        : "text.secondary";
-
-  return {
-    text: `${state.file.name}${label ? ` — ${label}` : ""}`,
-    color
-  } as const;
-};
 
 const UploadControl = ({
   label,
-  variant = "contained",
-  accept = ".csv,.zip",
+  accept = ".csv",
   dataTestId,
-  showStatus = true,
-  state,
-  onFileChange
+  multiple = false,
+  onFilesChange
 }: UploadControlProps) => {
-  const status = showStatus ? getUploadStatus(state) : null;
-
   return (
     <Stack spacing={0.5} sx={{ width: "100%" }}>
-      <Button component="label" variant={variant} fullWidth sx={{ height: CONTROL_HEIGHT }}>
+      <Button component="label" variant="contained" fullWidth sx={{ height: CONTROL_HEIGHT }}>
         {label}
         <input
           type="file"
           hidden
           onChange={(e) => {
-            const selected = e.target.files?.[0] ?? null;
-            onFileChange(selected);
+            const selected = e.target.files;
+            onFilesChange(selected ?? null);
           }}
           accept={accept}
           data-testid={dataTestId}
+          multiple={multiple}
         />
       </Button>
-      {showStatus && (
-        <Box sx={{ minHeight: STATUS_LINE_HEIGHT, display: "flex", alignItems: "center" }}>
-          {status ? (
-            <Typography
-              variant="body2"
-              color={status.color}
-              noWrap
-              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              {status.text}
-            </Typography>
-          ) : null}
-        </Box>
-      )}
+      <Box sx={{ minHeight: STATUS_LINE_HEIGHT, display: "flex", alignItems: "center" }} />
     </Stack>
   );
 };
@@ -147,9 +102,7 @@ const UploadControl = ({
 export function JobForm({ defaults, onCreate, isCreating, error, createStatus }: JobFormProps) {
   const [jobType, setJobType] = useState<JobType>(JobType.BOOTSTRAP_SINGLE);
   const [config, setConfig] = useState<ConfigOverrides>({});
-  const [file1, setFile1] = useState<UploadState>(initialUploadState);
-  const [file2, setFile2] = useState<UploadState>(initialUploadState);
-  const [file3, setFile3] = useState<UploadState>(initialUploadState);
+  const [uploads, setUploads] = useState<UploadState[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,7 +112,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
   }, [defaults]);
 
   const isDescriptive = jobType === JobType.DESCRIPTIVE_ONLY;
-  const requiresSecondFile = jobType === JobType.BOOTSTRAP_DUAL;
   const isKw = jobType === JobType.KW_PERMUTATION;
 
   const handleConfigChange = (key: keyof ConfigOverrides, value: string | number | boolean) => {
@@ -196,26 +148,61 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
     return payload;
   };
 
+  const handleFileSelection = (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      setUploads([]);
+      return;
+    }
+    setUploads(Array.from(files).map((file) => ({ file, status: "idle", error: null })));
+    setValidationError(null);
+  };
+
+  const describeUploadStatus = (state: UploadState) => {
+    let label: string | null = null;
+    if (state.status === "uploading") label = "Uploading...";
+    if (state.status === "uploaded") label = "Uploaded";
+    if (state.status === "failed") label = state.error ? `Failed: ${state.error}` : "Failed";
+    const color =
+      state.status === "failed"
+        ? "error.main"
+        : state.status === "uploaded"
+          ? "success.main"
+          : "text.secondary";
+    return {
+      text: `${state.file.name}${label ? ` — ${label}` : ""}`,
+      color
+    };
+  };
+
   const validateUploads = (): boolean => {
-    if (!file1.file) {
-      setValidationError("Primary dataset (file1) is required.");
+    if (uploads.length === 0) {
+      setValidationError("Please select at least one CSV file.");
       return false;
     }
-    const files = [file1.file, file2.file, file3.file].filter(Boolean) as File[];
-    for (const f of files) {
-      if (f.size > MAX_UPLOAD_BYTES) {
-        setValidationError(`File ${f.name} exceeds ${Math.round(MAX_UPLOAD_BYTES / 1e6)}MB limit.`);
+    for (const { file } of uploads) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setValidationError(`File ${file.name} exceeds ${Math.round(MAX_UPLOAD_BYTES / 1e6)}MB limit.`);
         return false;
       }
-      if (!allowedTypes.has(f.type)) {
-        setValidationError(
-          `File ${f.name} must be CSV or ZIP. Found ${f.type || "unknown type"}.`
-        );
+      if (!allowedTypes.has(file.type) && !file.name.toLowerCase().endswith(".csv")) {
+        setValidationError(`File ${file.name} must be a CSV file.`);
         return false;
       }
     }
-    if (requiresSecondFile && !file2.file) {
-      setValidationError("File 2 is required for dual bootstrap.");
+    if (jobType === JobType.BOOTSTRAP_SINGLE && uploads.length !== 1) {
+      setValidationError("Bootstrap single requires exactly one CSV file.");
+      return false;
+    }
+    if (jobType === JobType.DESCRIPTIVE_ONLY && uploads.length !== 1) {
+      setValidationError("Descriptive only requires exactly one CSV file.");
+      return false;
+    }
+    if (jobType === JobType.BOOTSTRAP_DUAL && uploads.length !== 2) {
+      setValidationError("Bootstrap dual requires exactly two CSV files.");
+      return false;
+    }
+    if (jobType === JobType.KW_PERMUTATION && uploads.length < 3) {
+      setValidationError("KW permutation requires at least three CSV files.");
       return false;
     }
     setValidationError(null);
@@ -225,27 +212,22 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!validateUploads()) return;
-    setFile1((prev) => (prev.file ? { ...prev, status: "uploading", error: null } : prev));
-    setFile3((prev) => (prev.file ? { ...prev, status: "uploading", error: null } : prev));
+    setUploads((prev) => prev.map((entry) => ({ ...entry, status: "uploading", error: null })));
 
     const payload: CreateJobPayload = {
       jobType,
       config: sanitizeConfig(config),
-      file1: file1.file,
-      file2: file2.file,
-      file3: file3.file
+      files: uploads.map((entry) => entry.file)
     };
     onCreate(payload);
   };
 
   useEffect(() => {
     if (createStatus === "success") {
-      setFile1((prev) => (prev.file ? { ...prev, status: "uploaded", error: null } : prev));
-      setFile3((prev) => (prev.file ? { ...prev, status: "uploaded", error: null } : prev));
+      setUploads((prev) => prev.map((entry) => ({ ...entry, status: "uploaded", error: null })));
     }
     if (createStatus === "error") {
-      setFile1((prev) => (prev.file ? { ...prev, status: "failed", error: error ?? null } : prev));
-      setFile3((prev) => (prev.file ? { ...prev, status: "failed", error: error ?? null } : prev));
+      setUploads((prev) => prev.map((entry) => ({ ...entry, status: "failed", error: error ?? null })));
     }
   }, [createStatus, error]);
 
@@ -312,7 +294,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
       ),
     [configGridColumns]
   );
-  const shouldShowFile3 = isKw || !requiresSecondFile;
 
   return (
     <Card
@@ -391,12 +372,47 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <UploadControl
-                  label="Upload file 1 (required)"
-                  state={file1}
-                  onFileChange={(file) => setFile1({ file, status: "idle", error: null })}
-                  dataTestId="file1-input"
-                />
+                <Stack spacing={1}>
+                  <UploadControl
+                    label="Upload CSV files"
+                    multiple
+                    onFilesChange={handleFileSelection}
+                    dataTestId="files-input"
+                  />
+                  <Box sx={{ minHeight: STATUS_LINE_HEIGHT * 2 }}>
+                    {uploads.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        No files selected.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={0.5}>
+                        {uploads.map((state, idx) => {
+                          const status = describeUploadStatus(state);
+                          return (
+                            <Typography
+                              key={`${state.file.name}-${idx}`}
+                              variant="body2"
+                              color={status.color}
+                              noWrap
+                              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                            >
+                              {status.text}
+                            </Typography>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  </Box>
+                  {isKw && (
+                    <Alert severity="info" variant="outlined" data-testid="kw-helper">
+                      <Typography fontWeight={600}>KW permutation uploads</Typography>
+                      <ul>
+                        <li>Select at least three CSV files.</li>
+                        <li>Each CSV is treated as a separate group.</li>
+                      </ul>
+                    </Alert>
+                  )}
+                </Stack>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Grid container spacing={CONFIG_SPACING} alignItems="stretch">
@@ -406,36 +422,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
                   {renderConfigInput("sampleSize")}
                   {renderConfigInput("permutationCount")}
                 </Grid>
-              </Grid>
-
-              {requiresSecondFile && (
-                <>
-                  <Grid item xs={12} md={6}>
-                    <UploadControl
-                      label="Upload file 2"
-                      variant="outlined"
-                      showStatus={false}
-                      onFileChange={(file) => setFile2({ file, status: "idle", error: null })}
-                      dataTestId="file2-input"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6} />
-                </>
-              )}
-
-              <Grid item xs={12} md={6}>
-                {shouldShowFile3 ? (
-                  <UploadControl
-                    label="Upload file 3 (optional)"
-                    variant="outlined"
-                    state={file3}
-                    onFileChange={(file) => setFile3({ file, status: "idle", error: null })}
-                    dataTestId="file3-input"
-                  />
-                ) : null}
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Grid container />
               </Grid>
 
               {remainingConfigFields.length > 0 && (
@@ -453,16 +439,6 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
             </Grid>
 
             <Stack spacing={2} sx={{ mt: 2 }}>
-              {isKw && (
-                <Alert severity="info" variant="outlined" data-testid="kw-helper">
-                  <Typography fontWeight={600}>KW ZIP guidance</Typography>
-                  <ul>
-                    <li>If your groups have multiple files, ZIP them into folders per group (recommended).</li>
-                    <li>If each group is one CSV, you can upload a flat ZIP with one CSV per group.</li>
-                    <li>Do not mix root CSVs and group folders.</li>
-                  </ul>
-                </Alert>
-              )}
               <FormGroup row>
                 <FormControlLabel
                   control={

@@ -20,7 +20,7 @@ describe("JobForm", () => {
     );
     await userEvent.click(screen.getByLabelText(/job type/i));
     await userEvent.click(screen.getByRole("option", { name: /kw permutation/i }));
-    expect(screen.getByTestId("kw-helper")).toBeInTheDocument();
+    expect(screen.getByTestId("kw-helper")).toHaveTextContent(/at least three csv files/i);
   });
 
   it("requires primary file before submit", async () => {
@@ -28,24 +28,24 @@ describe("JobForm", () => {
     render(<JobForm defaults={defaults} isCreating={false} onCreate={onCreate} createStatus="idle" />);
     await userEvent.click(screen.getByRole("button", { name: /start job/i }));
     expect(onCreate).not.toHaveBeenCalled();
-    expect(await screen.findByText(/primary dataset \(file1\) is required/i)).toBeVisible();
+    expect(await screen.findByText(/please select at least one csv/i)).toBeVisible();
   });
 
-  it("submits payload with descriptive job type and file1", async () => {
+  it("submits payload with descriptive job type and files array", async () => {
     const onCreate = vi.fn();
     render(<JobForm defaults={defaults} isCreating={false} onCreate={onCreate} createStatus="idle" />);
     await userEvent.click(screen.getByLabelText(/job type/i));
     await userEvent.click(screen.getByRole("option", { name: /descriptive only/i }));
 
     const file = new File(["a,b,c"], "data.csv", { type: "text/csv" });
-    const input = screen.getByTestId("file1-input") as HTMLInputElement;
+    const input = screen.getByTestId("files-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
     await userEvent.click(screen.getByRole("button", { name: /start job/i }));
     expect(onCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         jobType: JobType.DESCRIPTIVE_ONLY,
-        file1: expect.any(File)
+        files: [expect.any(File)]
       })
     );
   });
@@ -55,7 +55,7 @@ describe("JobForm", () => {
     const { rerender } = render(
       <JobForm defaults={defaults} isCreating={false} onCreate={onCreate} createStatus="idle" />
     );
-    const input = screen.getByTestId("file1-input") as HTMLInputElement;
+    const input = screen.getByTestId("files-input") as HTMLInputElement;
     const file = new File(["contents"], "selected.csv", { type: "text/csv" });
     await userEvent.upload(input, file);
     expect(screen.getByText(/selected.csv/i)).toBeVisible();
@@ -78,7 +78,7 @@ describe("JobForm", () => {
     const { rerender } = render(
       <JobForm defaults={defaults} isCreating={false} onCreate={onCreate} createStatus="idle" />
     );
-    const input = screen.getByTestId("file3-input") as HTMLInputElement;
+    const input = screen.getByTestId("files-input") as HTMLInputElement;
     const file = new File(["contents"], "third.csv", { type: "text/csv" });
     await userEvent.upload(input, file);
     expect(screen.getByText(/third.csv/i)).toBeVisible();
@@ -94,5 +94,23 @@ describe("JobForm", () => {
       />
     );
     expect(screen.getByText(/third.csv — Failed: Upload failed/i)).toBeVisible();
+  });
+
+  it("requires at least three files for KW permutation", async () => {
+    const onCreate = vi.fn();
+    render(<JobForm defaults={defaults} isCreating={false} onCreate={onCreate} createStatus="idle" />);
+    await userEvent.click(screen.getByLabelText(/job type/i));
+    await userEvent.click(screen.getByRole("option", { name: /kw permutation/i }));
+
+    const input = screen.getByTestId("files-input") as HTMLInputElement;
+    const files = [
+      new File(["one"], "a.csv", { type: "text/csv" }),
+      new File(["two"], "b.csv", { type: "text/csv" })
+    ];
+    fireEvent.change(input, { target: { files } });
+
+    await userEvent.click(screen.getByRole("button", { name: /start job/i }));
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(await screen.findByText(/requires at least three csv files/i)).toBeVisible();
   });
 });

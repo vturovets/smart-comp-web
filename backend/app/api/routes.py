@@ -51,9 +51,7 @@ def get_config_defaults(settings=Depends(get_settings_dep)) -> ConfigDefaultsRes
 async def create_job(
     jobType: Annotated[JobType, Form(...)],
     config: Annotated[str, Form(...)],
-    file1: UploadFile | None = File(default=None),
-    file2: UploadFile | None = File(default=None),
-    kwBundle: UploadFile | None = File(default=None),
+    files: list[UploadFile] = File(default_factory=list),
     job_service: JobService = Depends(get_job_service),
     current_user=Depends(get_current_user),
 ) -> JobCreateResponse:
@@ -67,9 +65,7 @@ async def create_job(
     record = job_service.create_job(
         job_type=jobType,
         config=parsed_config,
-        file1=await file1.read() if file1 else None,
-        file2=await file2.read() if file2 else None,
-        kw_bundle=await kwBundle.read() if kwBundle else None,
+        files=[(file.filename or f"file{idx}.csv", await file.read()) for idx, file in enumerate(files, start=1)],
         user_id=current_user.user_id if current_user else None,
     )
     bind_job_context(record.job_id)
