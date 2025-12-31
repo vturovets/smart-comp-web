@@ -82,6 +82,31 @@ describe("ResultsPanel interpretation section", () => {
   });
 });
 
+describe("ResultsPanel value formatting", () => {
+  it("formats non-integer numeric metrics and descriptive values to one decimal place", async () => {
+    const results: BootstrapSingleResults = {
+      jobId: "job-789",
+      jobType: JobType.BOOTSTRAP_SINGLE,
+      decision: { alpha: 0.05, pValue: 0, significant: true },
+      metrics: { sampleSize: 1000, p95: 1043.4509999999998, ciLower: 1033.7082499999942 },
+      descriptive: { mean: 997.8230999999993, median: 992.7249999999996, source: "file1" },
+      plots: []
+    };
+
+    render(<ResultsPanel {...baseProps} results={results} />, { wrapper });
+
+    expect(screen.getByText("1000")).toBeInTheDocument();
+    expect(screen.getByText("1043.5")).toBeInTheDocument();
+    expect(screen.getByText("1033.7")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /descriptive/i }));
+
+    expect(await screen.findByText("997.8")).toBeVisible();
+    expect(screen.getByText("992.7")).toBeVisible();
+    expect(screen.getByText("file1")).toBeVisible();
+  });
+});
+
 describe("ResultsPanel plots accordion", () => {
   const baseResults: BootstrapSingleResults = {
     jobId: "job-456",
