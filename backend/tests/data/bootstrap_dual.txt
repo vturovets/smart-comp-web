@@ -11,6 +11,6 @@ alpha=0.05
 sample size=4
 significant difference=False
  
-dataset1={'operation': 'descriptive analysis', 'data source': 'file1', 'mean': np.float64(15.0), 'median': np.float64(15.0), 'min': np.float64(10.0), 'max': np.float64(20.0), 'sample size': np.int64(6), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(10.0), 'p95_empirical': np.float64(19.5), 'sampleSize': np.int64(6)}
-dataset2={'operation': 'descriptive analysis', 'data source': 'file2', 'mean': np.float64(16.0), 'median': np.float64(16.0), 'min': np.float64(11.0), 'max': np.float64(21.0), 'sample size': np.int64(6), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(11.0), 'p95_empirical': np.float64(20.5)}
+dataset1={'data source': 'dataset1.csv', 'mean': np.float64(15.0), 'median': np.float64(15.0), 'min': np.float64(10.0), 'max': np.float64(20.0), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(10.0), 'p95_empirical': np.float64(19.5), 'sample size': np.int64(6)}
+dataset2={'data source': 'dataset2.csv', 'mean': np.float64(16.0), 'median': np.float64(16.0), 'min': np.float64(11.0), 'max': np.float64(21.0), 'standard deviation': np.float64(3.7416573867739413), 'skewness': np.float64(0.0), 'mode': np.float64(11.0), 'p95_empirical': np.float64(20.5), 'sample size': np.int64(6)}
  

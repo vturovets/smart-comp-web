@@ -217,11 +217,14 @@ class SmartCompExecutor:
 
     def _run_descriptive(self, cleaned: Sequence[Path], plots_requested: bool) -> dict[str, Any]:
         results: dict[str, Any] = {}
+        file_names = self._input_file_names()
         for idx, path in enumerate(cleaned, start=1):
             key = f"dataset{idx}"
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                results[key] = run_descriptive_analysis(str(path), self.config, self.logger)
+                descriptive = run_descriptive_analysis(str(path), self.config, self.logger)
+            source_name = file_names[idx - 1] if idx - 1 < len(file_names) else path.name
+            results[key] = self._clean_descriptive(descriptive, source_name)
             if plots_requested:
                 self._flag_plot_outputs()
             self.guard_cb()
@@ -382,7 +385,6 @@ class SmartCompExecutor:
         descriptive_section: dict[str, Any] = {}
         if descriptive_results:
             descriptive_section = next(iter(descriptive_results.values()))
-            descriptive_section["sampleSize"] = descriptive_section.get("sample size")
 
         normalized: dict[str, Any] = {
             "jobId": self.job_id,
@@ -607,3 +609,21 @@ class SmartCompExecutor:
             yield
         finally:
             os.chdir(previous)
+
+    def _input_file_names(self) -> list[str]:
+        names = self.payload.get("inputFilenames") or []
+        return [Path(name).name for name in names]
+
+    def _clean_descriptive(self, descriptive: dict[str, Any], source_name: str) -> dict[str, Any]:
+        cleaned = dict(descriptive)
+        cleaned.pop("operation", None)
+        cleaned["data source"] = source_name
+
+        sample_size = cleaned.pop("sampleSize", None)
+        if sample_size is None and "sample size" in cleaned:
+            sample_size = cleaned["sample size"]
+        cleaned.pop("sample size", None)
+        if sample_size is not None:
+            cleaned["sample size"] = sample_size
+
+        return cleaned

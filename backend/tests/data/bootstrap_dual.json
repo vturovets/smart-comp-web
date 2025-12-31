@@ -18,8 +18,7 @@
     "marginOfErrorPct2": 17.578125000000004
   },
   "descriptive": {
-    "operation": "descriptive analysis",
-    "data source": "file1",
+    "data source": "dataset1.csv",
     "mean": 15.0,
     "median": 15.0,
     "min": 10.0,
@@ -28,8 +27,7 @@
     "standard deviation": 3.7416573867739413,
     "skewness": 0.0,
     "mode": 10.0,
-    "p95_empirical": 19.5,
-    "sampleSize": 6
+    "p95_empirical": 19.5
   },
   "plots": [
     {
