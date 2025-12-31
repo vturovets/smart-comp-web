@@ -107,6 +107,36 @@ describe("ResultsPanel value formatting", () => {
   });
 });
 
+describe("ResultsPanel descriptive sanitization", () => {
+  it("normalizes descriptive data for display", async () => {
+    const results: BootstrapSingleResults = {
+      jobId: "job-901",
+      jobType: JobType.BOOTSTRAP_SINGLE,
+      decision: { alpha: 0.05, pValue: 0.05, significant: false },
+      metrics: {},
+      descriptive: {
+        operation: "descriptive analysis",
+        "data source": "/tmp/uploads/p95_sample1",
+        "sample size": 12,
+        sampleSize: 10,
+        mean: 1.234
+      },
+      plots: []
+    };
+
+    render(<ResultsPanel {...baseProps} results={results} />, { wrapper });
+
+    await userEvent.click(screen.getByRole("button", { name: /descriptive/i }));
+
+    expect(await screen.findByText("p95_sample1.csv")).toBeVisible();
+    expect(screen.getByText("sampleSize")).toBeVisible();
+    expect(screen.getByText("10")).toBeVisible();
+
+    expect(screen.queryByText(/operation/i)).not.toBeInTheDocument();
+    expect(screen.getByText("1.2")).toBeVisible();
+  });
+});
+
 describe("ResultsPanel plots accordion", () => {
   const baseResults: BootstrapSingleResults = {
     jobId: "job-456",
