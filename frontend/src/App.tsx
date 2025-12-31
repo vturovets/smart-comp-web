@@ -90,7 +90,7 @@ function App() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth={false} disableGutters sx={{ py: 4, px: { xs: 2, sm: 3, md: 4 } }}>
       <Stack spacing={4}>
         <header>
           <p className="eyebrow">Smart Comp</p>
