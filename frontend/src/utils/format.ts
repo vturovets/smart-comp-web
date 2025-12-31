@@ -10,6 +10,10 @@ export const formatFloat = (value: number, { isAlpha = false }: FormatFloatOptio
 };
 
 export const formatDisplayValue = (value: unknown, key?: string): string => {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
   if (typeof value === "number") {
     return formatFloat(value, { isAlpha: key?.toLowerCase() === "alpha" });
   }
