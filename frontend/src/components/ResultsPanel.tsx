@@ -73,11 +73,24 @@ const groupsColumns: GridColDef[] = [
   { field: "p95", headerName: "p95", width: 120 }
 ];
 
+const formatDisplayValue = (value: unknown): string => {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return String(value);
+    return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+};
+
 const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
     metric,
-    value: typeof value === "object" ? JSON.stringify(value) : String(value)
+    value: formatDisplayValue(value)
   }));
 
 const toGroupRows = (groups: KwGroupResult[]) =>
