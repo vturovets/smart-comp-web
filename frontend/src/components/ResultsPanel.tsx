@@ -30,6 +30,7 @@ import {
   PlotPayload,
   PlotRef
 } from "../api";
+import { formatDisplayValue, formatFloat } from "../utils/format";
 import { ArtifactsList } from "./ArtifactsList";
 import { PlotGallery } from "./PlotGallery";
 
@@ -62,22 +63,38 @@ const decisionColor = (significant?: boolean | null) => {
 
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
-  { field: "value", headerName: "Value", flex: 1 }
+  {
+    field: "value",
+    headerName: "Value",
+    flex: 1,
+    valueFormatter: (params) =>
+      formatDisplayValue(params.value, typeof params.row === "object" ? (params.row as { metric?: string }).metric : undefined)
+  }
 ];
 
 const groupsColumns: GridColDef[] = [
   { field: "group", headerName: "Group", flex: 1 },
   { field: "file", headerName: "File", flex: 1 },
   { field: "n", headerName: "n", width: 80, type: "number" },
-  { field: "median", headerName: "Median", width: 120 },
-  { field: "p95", headerName: "p95", width: 120 }
+  {
+    field: "median",
+    headerName: "Median",
+    width: 120,
+    valueFormatter: (params) => formatDisplayValue(params.value, params.field)
+  },
+  {
+    field: "p95",
+    headerName: "p95",
+    width: 120,
+    valueFormatter: (params) => formatDisplayValue(params.value, params.field)
+  }
 ];
 
 const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
     metric,
-    value: typeof value === "object" ? JSON.stringify(value) : String(value)
+    value
   }));
 
 const toGroupRows = (groups: KwGroupResult[]) =>
@@ -253,8 +270,12 @@ export function ResultsPanel({
         {decision.significant !== undefined && (
           <Chip label={decision.significant ? "Significant" : "Not significant"} color={decisionColor(decision.significant) as any} />
         )}
-        {decision.pValue !== undefined && <Chip label={`p-value ${decision.pValue}`} variant="outlined" />}
-        {decision.alpha !== undefined && <Chip label={`alpha ${decision.alpha}`} variant="outlined" />}
+        {decision.pValue !== undefined && (
+          <Chip label={`p-value ${formatFloat(decision.pValue)}`} variant="outlined" />
+        )}
+        {decision.alpha !== undefined && (
+          <Chip label={`alpha ${formatFloat(decision.alpha, { isAlpha: true })}`} variant="outlined" />
+        )}
       </Stack>
     );
   };
