@@ -8,16 +8,20 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
+  Popover,
   Select,
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography
 } from "@mui/material";
 import { MutationStatus } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { ConfigDefaults, ConfigOverrides, CreateJobPayload, JobType } from "../api";
 
@@ -104,6 +108,7 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
   const [config, setConfig] = useState<ConfigOverrides>({});
   const [uploads, setUploads] = useState<UploadState[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [infoAnchor, setInfoAnchor] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (defaults) {
@@ -305,11 +310,32 @@ export function JobForm({ defaults, onCreate, isCreating, error, createStatus }:
       <CardContent>
         <Stack spacing={3}>
           <Stack spacing={1}>
-            <Typography variant="h5">Create analysis job</Typography>
-            <Typography color="text.secondary">
-              Upload your datasets, edit configuration, and launch a Smart-Comp job. Status polling and
-              cancellations will appear automatically.
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="h5">Create analysis job</Typography>
+              <Tooltip title="Show create job details">
+                <IconButton
+                  aria-label="Create analysis job info"
+                  size="small"
+                  onClick={(event) => setInfoAnchor(event.currentTarget)}
+                >
+                  <InfoOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Popover
+              open={Boolean(infoAnchor)}
+              anchorEl={infoAnchor}
+              onClose={() => setInfoAnchor(null)}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
+            >
+              <Box sx={{ p: 2, maxWidth: 360 }}>
+                <Typography color="text.secondary" variant="body2">
+                  Upload your datasets, edit configuration, and launch a Smart-Comp job. Status polling and
+                  cancellations will appear automatically.
+                </Typography>
+              </Box>
+            </Popover>
           </Stack>
 
           <Grid container spacing={2}>
