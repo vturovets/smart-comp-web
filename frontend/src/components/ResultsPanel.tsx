@@ -102,6 +102,8 @@ const formatMetricLabel = (metricKey: string) => {
   return metricTitleLookup[normalizedKey] ?? normalizedKey;
 };
 
+const boldHeaderSx = { "& .MuiDataGrid-columnHeaderTitle": { fontWeight: "bold" } };
+
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
   { field: "value", headerName: "Value", flex: 1 }
@@ -333,7 +335,13 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid
+                  rows={metricsRows}
+                  columns={kvColumns}
+                  disableRowSelectionOnClick
+                  hideFooter
+                  sx={boldHeaderSx}
+                />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -346,7 +354,13 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid
+                  rows={descriptiveRows}
+                  columns={kvColumns}
+                  disableRowSelectionOnClick
+                  hideFooter
+                  sx={boldHeaderSx}
+                />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -374,7 +388,13 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid
+                  rows={metricsRows}
+                  columns={kvColumns}
+                  disableRowSelectionOnClick
+                  hideFooter
+                  sx={boldHeaderSx}
+                />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -387,7 +407,13 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid
+                  rows={descriptiveRows}
+                  columns={kvColumns}
+                  disableRowSelectionOnClick
+                  hideFooter
+                  sx={boldHeaderSx}
+                />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -450,7 +476,13 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid
+                  rows={descriptiveRows}
+                  columns={kvColumns}
+                  disableRowSelectionOnClick
+                  hideFooter
+                  sx={boldHeaderSx}
+                />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
