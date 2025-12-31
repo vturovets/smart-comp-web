@@ -2,8 +2,7 @@
   "jobId": "ed2b2088-5a80-4314-9d3c-57840997c25f",
   "jobType": "DESCRIPTIVE_ONLY",
   "descriptive": {
-    "operation": "descriptive analysis",
-    "data source": "file1",
+    "data source": "dataset.csv",
     "mean": 15.0,
     "median": 15.0,
     "min": 10.0,

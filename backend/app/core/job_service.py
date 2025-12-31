@@ -62,6 +62,7 @@ class JobService:
         resolved_config = self._resolve_config(config)
         (job_paths.input_dir / "config.json").write_text(json.dumps(resolved_config), encoding="utf-8")
         payload: dict[str, Any] = _deep_merge({"jobType": job_type.value}, resolved_config)
+        payload["inputFilenames"] = [Path(name).name for name, _ in upload_files]
 
         if job_type == JobType.KW_PERMUTATION:
             if len(upload_files) < 3:
