@@ -30,6 +30,7 @@ import {
   PlotPayload,
   PlotRef
 } from "../api";
+import { formatTableValue, humanizeMetricKey } from "../utils/formatters";
 import { ArtifactsList } from "./ArtifactsList";
 import { PlotGallery } from "./PlotGallery";
 
@@ -61,23 +62,49 @@ const decisionColor = (significant?: boolean | null) => {
 };
 
 const kvColumns: GridColDef[] = [
-  { field: "metric", headerName: "Metric", flex: 1 },
-  { field: "value", headerName: "Value", flex: 1 }
+  {
+    field: "metric",
+    headerName: "Metric",
+    flex: 1,
+    valueFormatter: ({ value }) => humanizeMetricKey(String(value ?? ""))
+  },
+  {
+    field: "value",
+    headerName: "Value",
+    flex: 1,
+    valueFormatter: ({ value }) => formatTableValue(value)
+  }
 ];
 
 const groupsColumns: GridColDef[] = [
   { field: "group", headerName: "Group", flex: 1 },
   { field: "file", headerName: "File", flex: 1 },
-  { field: "n", headerName: "n", width: 80, type: "number" },
-  { field: "median", headerName: "Median", width: 120 },
-  { field: "p95", headerName: "p95", width: 120 }
+  {
+    field: "n",
+    headerName: humanizeMetricKey("n"),
+    width: 120,
+    type: "number",
+    valueFormatter: ({ value }) => formatTableValue(value)
+  },
+  {
+    field: "median",
+    headerName: humanizeMetricKey("median"),
+    width: 140,
+    valueFormatter: ({ value }) => formatTableValue(value)
+  },
+  {
+    field: "p95",
+    headerName: humanizeMetricKey("p95"),
+    width: 140,
+    valueFormatter: ({ value }) => formatTableValue(value)
+  }
 ];
 
 const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
     metric,
-    value: typeof value === "object" ? JSON.stringify(value) : String(value)
+    value
   }));
 
 const toGroupRows = (groups: KwGroupResult[]) =>
@@ -93,6 +120,16 @@ const toGroupRows = (groups: KwGroupResult[]) =>
   );
 
 const getPlots = (results?: JobResults): PlotRef[] => results?.plots ?? [];
+
+const dataGridBaseProps = {
+  disableRowSelectionOnClick: true,
+  hideFooter: true,
+  sx: {
+    "& .MuiDataGrid-columnHeaderTitle": {
+      fontWeight: 700
+    }
+  }
+} as const;
 
 interface ResultsAccordionSectionProps {
   id: keyof typeof initialExpandedState;
@@ -278,7 +315,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={metricsRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -291,7 +328,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -319,7 +356,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={metricsRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={metricsRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -332,7 +369,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
@@ -360,7 +397,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 220, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={omnibusRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={omnibusRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <ResultsAccordionSection
@@ -373,7 +410,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 320, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={groupRows} columns={groupsColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={groupRows} columns={groupsColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
           </Stack>
@@ -395,7 +432,7 @@ export function ResultsPanel({
               <Box
                 sx={{ height: 260, minWidth: 0, maxWidth: "100%", width: "100%", overflowX: "auto" }}
               >
-                <DataGrid rows={descriptiveRows} columns={kvColumns} disableRowSelectionOnClick hideFooter />
+                <DataGrid rows={descriptiveRows} columns={kvColumns} {...dataGridBaseProps} />
               </Box>
             </ResultsAccordionSection>
             <InterpretationSection
