@@ -11,10 +11,14 @@ import {
   Card,
   CardContent,
   Chip,
+  IconButton,
+  Popover,
   Stack,
+  Tooltip,
   Typography
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ReactMarkdown from "react-markdown";
 
 import {
@@ -291,6 +295,7 @@ export function ResultsPanel({
   const hasResults = Boolean(results);
   const plots = getPlots(results);
   const [expandedSections, setExpandedSections] = useState<typeof initialExpandedState>(initialExpandedState);
+  const [infoAnchor, setInfoAnchor] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (results) {
@@ -531,7 +536,32 @@ export function ResultsPanel({
     >
       <CardContent>
         <Stack spacing={3}>
-          <Typography variant="h6">Results</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="h6">Results</Typography>
+            <Tooltip title="Show results details">
+              <IconButton
+                aria-label="Results info"
+                size="small"
+                onClick={(event) => setInfoAnchor(event.currentTarget)}
+              >
+                <InfoOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          <Popover
+            open={Boolean(infoAnchor)}
+            anchorEl={infoAnchor}
+            onClose={() => setInfoAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <Box sx={{ p: 2, maxWidth: 360 }}>
+              <Typography color="text.secondary" variant="body2">
+                Review metrics, plots, and artifacts once an analysis completes. Use the accordions to explore detailed
+                outcomes for each job.
+              </Typography>
+            </Box>
+          </Popover>
           {!hasResults ? (
             renderEmptyState()
           ) : (

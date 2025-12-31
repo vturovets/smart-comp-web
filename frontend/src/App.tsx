@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Alert, Box, Container, Stack, Typography } from "@mui/material";
+import { Alert, Box, Container, IconButton, Popover, Stack, Tooltip, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { Artifact, JobStatus, PlotPayload, buildApiClient } from "./api";
 import { JobForm } from "./components/JobForm";
@@ -12,6 +13,7 @@ function App() {
   const api = useMemo(() => buildApiClient(env.apiBaseUrl), []);
   const [jobId, setJobId] = useState<string | null>(null);
   const [plotError, setPlotError] = useState<string | null>(null);
+  const [analysisInfoAnchor, setAnalysisInfoAnchor] = useState<HTMLElement | null>(null);
 
   const defaultsQuery = useQuery({
     queryKey: ["config-defaults"],
@@ -94,13 +96,34 @@ function App() {
       <Stack spacing={4}>
         <header>
           <p className="eyebrow">Smart Comp</p>
-          <Typography variant="h4" component="h1">
-            Analysis console
-          </Typography>
-          <Typography className="lede">
-            Launch bootstrap, Kruskal-Wallis, and descriptive-only jobs, edit configs, watch status, cancel
-            when necessary, and review results with Plotly visuals and MUI data grids.
-          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="h4" component="h1">
+              Analysis console
+            </Typography>
+            <Tooltip title="Show analysis console details">
+              <IconButton
+                aria-label="Analysis console info"
+                size="small"
+                onClick={(event) => setAnalysisInfoAnchor(event.currentTarget)}
+              >
+                <InfoOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          <Popover
+            open={Boolean(analysisInfoAnchor)}
+            anchorEl={analysisInfoAnchor}
+            onClose={() => setAnalysisInfoAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <Box sx={{ p: 2, maxWidth: 360 }}>
+              <Typography variant="body2" className="lede">
+                Launch bootstrap, Kruskal-Wallis, and descriptive-only jobs, edit configs, watch status, cancel when
+                necessary, and review results with Plotly visuals and MUI data grids.
+              </Typography>
+            </Box>
+          </Popover>
         </header>
 
         <Box
