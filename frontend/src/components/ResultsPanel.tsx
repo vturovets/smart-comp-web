@@ -60,6 +60,48 @@ const decisionColor = (significant?: boolean | null) => {
   return significant ? "success" : "default";
 };
 
+const normalizeMetricKey = (metricKey: string) =>
+  metricKey
+    .replace(/[_]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Za-z])(\d+)/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+const metricTitleLookup: Record<string, string> = {
+  [normalizeMetricKey("sampleSize")]: "sample size",
+  [normalizeMetricKey("p95")]: "95th percentile, ms",
+  [normalizeMetricKey("p95_2")]: "95th percentile (sample 2), ms",
+  [normalizeMetricKey("ciLower")]: "95% CI lower, ms",
+  [normalizeMetricKey("ciUpper")]: "95% CI upper, ms",
+  [normalizeMetricKey("ciLower2")]: "95% CI lower (sample 2), ms",
+  [normalizeMetricKey("ciUpper2")]: "95% CI upper (sample 2), ms",
+  [normalizeMetricKey("marginOfErrorPct")]: "margin of error, %",
+  [normalizeMetricKey("marginOfErrorPct2")]: "margin of error (sample 2), %",
+  [normalizeMetricKey("threshold")]: "threshold, ms",
+  [normalizeMetricKey("mean")]: "mean, ms",
+  [normalizeMetricKey("median")]: "median, ms",
+  [normalizeMetricKey("min")]: "minimum, ms",
+  [normalizeMetricKey("max")]: "maximum, ms",
+  [normalizeMetricKey("mode")]: "mode, ms",
+  [normalizeMetricKey("p95_empirical")]: "95th percentile (empirical), ms",
+  [normalizeMetricKey("standard deviation")]: "standard deviation, ms",
+  [normalizeMetricKey("sample size")]: "sample size",
+  [normalizeMetricKey("data source")]: "data source",
+  [normalizeMetricKey("skewness")]: "skewness",
+  [normalizeMetricKey("hStatistic")]: "H statistic",
+  [normalizeMetricKey("permutations")]: "permutations",
+  [normalizeMetricKey("totalN")]: "total n",
+  [normalizeMetricKey("tieCorrection")]: "tie correction",
+  [normalizeMetricKey("groupSizes")]: "group sizes"
+};
+
+const formatMetricLabel = (metricKey: string) => {
+  const normalizedKey = normalizeMetricKey(metricKey);
+  return metricTitleLookup[normalizedKey] ?? normalizedKey;
+};
+
 const kvColumns: GridColDef[] = [
   { field: "metric", headerName: "Metric", flex: 1 },
   { field: "value", headerName: "Value", flex: 1 }
@@ -69,8 +111,8 @@ const groupsColumns: GridColDef[] = [
   { field: "group", headerName: "Group", flex: 1 },
   { field: "file", headerName: "File", flex: 1 },
   { field: "n", headerName: "n", width: 80, type: "number" },
-  { field: "median", headerName: "Median", width: 120 },
-  { field: "p95", headerName: "p95", width: 120 }
+  { field: "median", headerName: formatMetricLabel("median"), width: 140 },
+  { field: "p95", headerName: formatMetricLabel("p95"), width: 180 }
 ];
 
 const formatDisplayValue = (value: unknown): string => {
@@ -89,7 +131,7 @@ const formatDisplayValue = (value: unknown): string => {
 const toKvRows = (values: Record<string, unknown> = {}) =>
   Object.entries(values).map(([metric, value], idx) => ({
     id: `${metric}-${idx}`,
-    metric,
+    metric: formatMetricLabel(metric),
     value: formatDisplayValue(value)
   }));
 
