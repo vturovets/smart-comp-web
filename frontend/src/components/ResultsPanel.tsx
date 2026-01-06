@@ -141,6 +141,37 @@ const toKvRows = (values: Record<string, unknown> = {}) =>
     value: formatDisplayValue(value)
   }));
 
+const normalizeDataSourceValue = (value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+
+  const filename = value.split(/[\\/]/).pop() ?? value;
+  const hasExtension = /\.[^./\\]+$/.test(filename);
+
+  return hasExtension ? filename : `${filename}.csv`;
+};
+
+const sanitizeDescriptive = (values: Record<string, unknown> = {}) => {
+  const entries: Record<string, unknown> = { ...values };
+
+  const sampleSizeValue = entries.sampleSize ?? entries["sample size"];
+  if (sampleSizeValue !== undefined) {
+    entries.sampleSize = sampleSizeValue;
+  }
+  delete entries["sample size"];
+
+  if (typeof entries.operation === "string" && entries.operation.toLowerCase() === "descriptive analysis") {
+    delete entries.operation;
+  }
+
+  if ("data source" in entries) {
+    entries["data source"] = normalizeDataSourceValue(entries["data source"]);
+  }
+
+  return entries;
+};
+
+const toDescriptiveRows = (values: Record<string, unknown> = {}) => toKvRows(sanitizeDescriptive(values));
+
 const toGroupRows = (groups: KwGroupResult[]) =>
   groups.flatMap((group) =>
     group.files.map((file) => ({
@@ -326,7 +357,7 @@ export function ResultsPanel({
       case JobType.BOOTSTRAP_SINGLE: {
         const data = results as BootstrapSingleResults;
         const metricsRows = toKvRows(data.metrics);
-        const descriptiveRows = toKvRows(data.descriptive);
+        const descriptiveRows = toDescriptiveRows(data.descriptive);
         return (
           <Stack spacing={2}>
             {renderDecision(data.decision)}
@@ -379,7 +410,7 @@ export function ResultsPanel({
       case JobType.BOOTSTRAP_DUAL: {
         const data = results as BootstrapDualResults;
         const metricsRows = toKvRows(data.metrics);
-        const descriptiveRows = toKvRows(data.descriptive);
+        const descriptiveRows = toDescriptiveRows(data.descriptive);
         return (
           <Stack spacing={2}>
             {renderDecision(data.decision)}
@@ -467,7 +498,7 @@ export function ResultsPanel({
       }
       case JobType.DESCRIPTIVE_ONLY: {
         const data = results as DescriptiveOnlyResults;
-        const descriptiveRows = toKvRows(data.descriptive);
+        const descriptiveRows = toDescriptiveRows(data.descriptive);
         return (
           <Stack spacing={2}>
             <Alert severity="info">Descriptive-only job: decision block omitted by design.</Alert>
